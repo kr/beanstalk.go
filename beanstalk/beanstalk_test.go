@@ -436,9 +436,13 @@ func TestPeek(t *testing.T) {
 }
 
 func TestPeekReplyNotEnoughArgs(t *testing.T) {
-	rw, _ := responder("FOUND\na\n")
+	rw, buf := responder("FOUND\na\n")
 	c := newConn("<fake>", rw)
 	j, err := c.Peek(1)
+
+	if buf.String() != "peek 1\r\n" {
+		t.Errorf("expected peek command, got %q", buf.String())
+	}
 
 	if j != nil {
 		t.Errorf("unexpected job %#v", j)
