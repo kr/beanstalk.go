@@ -41,9 +41,8 @@ import (
 	"strings"
 )
 
-// Microseconds. TODO get rid of this type and just document the
-// Tubes.SetTimeout method.
-type Usec int64
+// Microseconds.
+type µs int64
 
 type Job struct {
 	Id uint64
@@ -68,7 +67,7 @@ type Tube struct {
 // once, especially Reserve.
 type Tubes struct {
 	Names []string
-	timeout Usec
+	timeout µs
 	c Conn
 }
 
@@ -104,7 +103,7 @@ const (
 )
 
 // For timeouts. Actually not infinite; merely large. About 126 years.
-const Infinity = Usec(4000000000000000)
+const Infinity = µs(4000000000000000)
 
 // Error responses that can be returned by the server.
 var (
@@ -152,11 +151,11 @@ func (e replyError) String() string {
 	return "Server " + errorNames[e]
 }
 
-func (x Usec) Milliseconds() int64 {
+func (x µs) Milliseconds() int64 {
 	return int64(x) / 1000
 }
 
-func (x Usec) Seconds() int64 {
+func (x µs) Seconds() int64 {
 	return x.Milliseconds() / 1000
 }
 
