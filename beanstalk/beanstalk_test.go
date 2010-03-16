@@ -23,7 +23,7 @@ func responder(reply string) (io.ReadWriter, *bytes.Buffer) {
 func TestPutReplyEOF(t *testing.T) {
 	rw, _ := responder("INSERTED 1") // no traling LF, so we hit EOF
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -55,7 +55,7 @@ func TestPutReplyEOF(t *testing.T) {
 func TestPutReplyUnknown(t *testing.T) {
 	rw, _ := responder("FOO 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -87,7 +87,7 @@ func TestPutReplyUnknown(t *testing.T) {
 func TestPutReplyTooManyArgs(t *testing.T) {
 	rw, _ := responder("INSERTED 1 2\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -119,7 +119,7 @@ func TestPutReplyTooManyArgs(t *testing.T) {
 func TestPutReplyBadInteger(t *testing.T) {
 	rw, _ := responder("INSERTED x\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -151,7 +151,7 @@ func TestPutReplyBadInteger(t *testing.T) {
 func TestPutReplyInternalError(t *testing.T) {
 	rw, _ := responder("INTERNAL_ERROR\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -183,7 +183,7 @@ func TestPutReplyInternalError(t *testing.T) {
 func TestStripTab(t *testing.T) {
 	rw, buf := responder("INSERTED 1\t\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -201,7 +201,7 @@ func TestStripTab(t *testing.T) {
 func TestStripCR(t *testing.T) {
 	rw, buf := responder("INSERTED 1\r\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -219,7 +219,7 @@ func TestStripCR(t *testing.T) {
 func TestPut(t *testing.T) {
 	rw, buf := responder("INSERTED 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -237,7 +237,7 @@ func TestPut(t *testing.T) {
 func TestPut2(t *testing.T) {
 	rw, buf := responder("INSERTED 2\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("default", "a", 0, 0, 0)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -255,7 +255,7 @@ func TestPut2(t *testing.T) {
 func TestPutOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nINSERTED 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("foo", "a", 0, 0, 0)
+	id, err := c.Tube("foo").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -273,7 +273,7 @@ func TestPutOtherTube(t *testing.T) {
 func TestPutUseFail(t *testing.T) {
 	rw, buf := responder("INTERNAL_ERROR\nINSERTED 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Put("foo", "a", 0, 0, 0)
+	id, err := c.Tube("foo").Put("a", 0, 0, 0)
 
 	if buf.String() != "use foo\r\nput 0 0 0 1\r\na\r\n" {
 		t.Errorf("expected use/put command, got %q", buf.String())
@@ -309,7 +309,7 @@ func TestPutUseFail(t *testing.T) {
 func TestDelete(t *testing.T) {
 	rw, buf := responder("DELETED\n")
 	c := newConn("<fake>", rw)
-	err := c.Delete(1)
+	err := c.delete(1)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -324,7 +324,7 @@ func TestDelete(t *testing.T) {
 func TestDeleteNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
-	err := c.Delete(1)
+	err := c.delete(1)
 
 	if err == nil {
 		t.Fatal("expected error, got none")

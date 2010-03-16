@@ -16,6 +16,10 @@ import (
 	"strings"
 )
 
+type Tubes interface {
+	Reserve(uint32) (Job, os.Error)
+}
+
 type Job struct {
 	Id int64
 }
@@ -25,6 +29,12 @@ type Conn struct {
 	ch chan<- []op
 }
 
+type Tube struct {
+	Name string
+	c Conn
+}
+
+// Implements os.Error
 type Error struct {
 	Conn Conn
 	Cmd string
@@ -280,7 +290,7 @@ func newConn(name string, rw io.ReadWriter) Conn {
 }
 
 // Put a job into the queue.
-func (c Conn) Put(tube string, body string, pri, delay, ttr uint32) (uint64, os.Error) {
+func (c Conn) put(tube string, body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	cmd1 := fmt.Sprintf("use %s\r\n", tube)
 	p1 := make(chan result)
 	o1 := op{cmd1, p1}
@@ -326,34 +336,18 @@ func (c Conn) Put(tube string, body string, pri, delay, ttr uint32) (uint64, os.
 	return id, nil
 }
 
-/*
-type Tube struct {
-	Name string
-	C Conn
-}
-
-func (t Tube) Put(body string, pri, delay, ttr, uint32) () {
-}
-
-// Put a job into the queue.
+// A convenient way to submit many jobs to the same tube.
 func (c Conn) Tube(name string) Tube {
-	cmd := fmt.Sprintf("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
-	_, err := io.WriteString(c.rw, cmd)
-	if err != nil {
-		return 0, err
-	}
-	s
-	return 1, nil
+	return Tube{name, c}
 }
-*/
 
-// Reserve a job to run.
+// Reserve a job from the default tube.
 func (c Conn) Reserve(ttr uint) (*Job, os.Error) {
 	return new(Job), Error{c, "the cmd", "", InternalError}
 }
 
 // Delete a job.
-func (c Conn) Delete(id uint64) os.Error {
+func (c Conn) delete(id uint64) os.Error {
 	cmd := fmt.Sprintf("delete %d\r\n", id)
 	p := make(chan result)
 
@@ -376,3 +370,12 @@ func (c Conn) Delete(id uint64) os.Error {
 	return nil
 }
 
+func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
+	return t.c.put(t.Name, body, pri, delay, ttr)
+}
+
+/*
+func (j Job) Delete() os.Error {
+	return j.c.delete(j.Id)
+}
+*/
