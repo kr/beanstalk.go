@@ -336,6 +336,34 @@ func (c Conn) put(tube string, body string, pri, delay, ttr uint32) (uint64, os.
 	return id, nil
 }
 
+func (c Conn) peekResult(cmd string, r result) (*Job, os.Error) {
+	if r.err != nil {
+		return nil, Error{c, cmd, r.line, r.err}
+	}
+
+	if r.name == "NOT_FOUND" {
+		return nil, Error{c, cmd, r.line, NotFound}
+	}
+
+	if r.name != "OK" {
+		return nil, Error{c, cmd, r.line, BadReply}
+	}
+
+	return new(Job), Error{c, "the cmd", "", InternalError}
+}
+
+// Reserve a job from the default tube.
+func (c Conn) Peek(id uint64) (*Job, os.Error) {
+	cmd := fmt.Sprintf("peek %d\r\n", id)
+	p := make(chan result)
+
+	o := op{cmd, p}
+	c.ch <- []op{o}
+
+	r := <-p
+	return c.peekResult(cmd, r)
+}
+
 // A convenient way to submit many jobs to the same tube.
 func (c Conn) Tube(name string) Tube {
 	return Tube{name, c}
@@ -372,6 +400,41 @@ func (c Conn) delete(id uint64) os.Error {
 
 func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	return t.c.put(t.Name, body, pri, delay, ttr)
+}
+
+// Reserve a job from the default tube.
+func (t Tube) PeekReady() (*Job, os.Error) {
+	cmd := fmt.Sprint("peek-ready\r\n")
+	p := make(chan result)
+
+	o := op{cmd, p}
+	t.c.ch <- []op{o}
+
+	r := <-p
+	return t.c.peekResult(cmd, r)
+}
+
+// Reserve a job from the default tube.
+func (t Tube) PeekDelayed() (*Job, os.Error) {
+	cmd := fmt.Sprint("peek-delayed\r\n")
+	p := make(chan result)
+
+	o := op{cmd, p}
+	t.c.ch <- []op{o}
+
+	r := <-p
+	return t.c.peekResult(cmd, r)
+}
+
+func (t Tube) PeekBuried() (*Job, os.Error) {
+	cmd := fmt.Sprint("peek-buried\r\n")
+	p := make(chan result)
+
+	o := op{cmd, p}
+	t.c.ch <- []op{o}
+
+	r := <-p
+	return t.c.peekResult(cmd, r)
 }
 
 /*

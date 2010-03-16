@@ -349,3 +349,131 @@ func TestDeleteNotFound(t *testing.T) {
 	}
 }
 
+func TestPeekNotFound(t *testing.T) {
+	rw, _ := responder("NOT_FOUND\n")
+	c := newConn("<fake>", rw)
+	j, err := c.Peek(1)
+
+	if j != nil {
+		t.Error("expected nil job")
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "peek 1\r\n" {
+		t.Errorf("expected delete command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
+func TestPeekReadyNotFound(t *testing.T) {
+	rw, _ := responder("NOT_FOUND\n")
+	c := newConn("<fake>", rw)
+	j, err := c.Tube("default").PeekReady()
+
+	if j != nil {
+		t.Error("expected nil job")
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "peek-ready\r\n" {
+		t.Errorf("expected peek-ready command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
+func TestPeekDelayedNotFound(t *testing.T) {
+	rw, _ := responder("NOT_FOUND\n")
+	c := newConn("<fake>", rw)
+	j, err := c.Tube("default").PeekDelayed()
+
+	if j != nil {
+		t.Error("expected nil job")
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "peek-delayed\r\n" {
+		t.Errorf("expected peek-delayed command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
+func TestPeekBuriedNotFound(t *testing.T) {
+	rw, _ := responder("NOT_FOUND\n")
+	c := newConn("<fake>", rw)
+	j, err := c.Tube("default").PeekBuried()
+
+	if j != nil {
+		t.Error("expected nil job")
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "peek-buried\r\n" {
+		t.Errorf("expected peek-buried command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
