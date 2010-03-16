@@ -188,7 +188,7 @@ func optTube(tube string, ops []op) (string, []op) {
 // Reordering, compressing, optimization.
 func prepare(ops []op) string {
 	var cmds vector.StringVector
-	for _, o := range(ops) {
+	for _, o := range ops {
 		cmds.Push(o.cmd)
 	}
 
@@ -203,7 +203,7 @@ func send(toSend <-chan []op, wr io.Writer, sent chan<- op) {
 		cmds := prepare(ops)
 
 		io.WriteString(wr, cmds)
-		for _, o := range(ops) {
+		for _, o := range ops {
 			sent <- o
 		}
 
@@ -216,7 +216,7 @@ func bodyLen(line string) int {
 
 func maps(f func(string) string, ss []string) (out []string) {
 	out = make([]string, len(ss))
-	for i, s := range(ss) {
+	for i, s := range ss {
 		out[i] = f(s)
 	}
 	return
