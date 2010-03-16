@@ -381,6 +381,28 @@ func TestPeekNotFound(t *testing.T) {
 	}
 }
 
+func TestPeek(t *testing.T) {
+	rw, _ := responder("FOUND 1 1\na\n")
+	c := newConn("<fake>", rw)
+	j, err := c.Peek(1)
+
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	if j == nil {
+		t.Fatal("job is nil")
+	}
+
+	if j.Id != 1 {
+		t.Error("expedted id 1, got", j.Id)
+	}
+
+	if j.Body != "a" {
+		t.Errorf("expedted body \"a\", got %q", j.Body)
+	}
+}
+
 func TestPeekReadyNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)

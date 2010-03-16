@@ -21,7 +21,8 @@ type Tubes interface {
 }
 
 type Job struct {
-	Id int64
+	Id uint64
+	Body string
 }
 
 type Conn struct {
@@ -210,7 +211,16 @@ func send(toSend <-chan []op, wr io.Writer, sent chan<- op) {
 	}
 }
 
-func bodyLen(line string) int {
+func bodyLen(reply string, args []string) int {
+	switch reply {
+	case "FOUND":
+		l, err := strconv.Atoi(args[1])
+		if err != nil {
+			fmt.Println("err", err)
+			return 0
+		}
+		return l
+	}
 	return 0
 }
 
@@ -237,10 +247,13 @@ func recv(raw io.Reader, ops <-chan op) {
 			return
 		}
 
+		split := maps(strings.TrimSpace, strings.Split(line, " ", 0))
+		reply, args := split[0], split[1:]
+
 		// Read the body, if any.
 		var body []byte
-		if n := bodyLen(line); n > 0 {
-			body := make([]byte, n)
+		if n := bodyLen(reply, args); n > 0 {
+			body = make([]byte, n)
 			r, err := io.ReadFull(rd, body)
 
 			if err != nil {
@@ -252,10 +265,8 @@ func recv(raw io.Reader, ops <-chan op) {
 			}
 		}
 
-		split := maps(strings.TrimSpace, strings.Split(line, " ", 0))
-
 		// Get the corresponding op and deliver the result.
-		(<-ops).resolve(line, string(body), split[0], split[1:], nil)
+		(<-ops).resolve(line, string(body), reply, args, nil)
 	}
 }
 
@@ -345,11 +356,21 @@ func (c Conn) peekResult(cmd string, r result) (*Job, os.Error) {
 		return nil, Error{c, cmd, r.line, NotFound}
 	}
 
-	if r.name != "OK" {
+	if r.name != "FOUND" {
 		return nil, Error{c, cmd, r.line, BadReply}
 	}
 
-	return new(Job), Error{c, "the cmd", "", InternalError}
+	if len(r.args) != 2 {
+		return nil, Error{c, cmd, r.line, BadReply}
+	}
+
+	id, err := strconv.Atoui64(r.args[0])
+
+	if err != nil {
+		return nil, Error{c, cmd, r.line, BadReply}
+	}
+
+	return &Job{id, r.body}, nil
 }
 
 // Reserve a job from the default tube.
