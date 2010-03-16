@@ -214,6 +214,9 @@ func send(toSend <-chan []op, wr io.Writer, sent chan<- op) {
 func bodyLen(reply string, args []string) int {
 	switch reply {
 	case "FOUND":
+		if len(args) != 2 {
+			return 0
+		}
 		l, err := strconv.Atoi(args[1])
 		if err != nil {
 			fmt.Println("err", err)

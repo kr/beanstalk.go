@@ -116,6 +116,38 @@ func TestPutReplyTooManyArgs(t *testing.T) {
 	}
 }
 
+func TestPutReplyNotEnoughArgs(t *testing.T) {
+	rw, _ := responder("INSERTED\n")
+	c := newConn("<fake>", rw)
+	id, err := c.Tube("default").Put("a", 0, 0, 0)
+
+	if id != 0 {
+		t.Error("expected id 0, got", id)
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "put 0 0 0 1\r\na\r\n" {
+		t.Errorf("expected put command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "INSERTED\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != BadReply {
+		t.Fatalf("expected beanstalk.BadReply, got %v", berr.Error)
+	}
+}
+
 func TestPutReplyBadInteger(t *testing.T) {
 	rw, _ := responder("INSERTED x\n")
 	c := newConn("<fake>", rw)
@@ -400,6 +432,38 @@ func TestPeek(t *testing.T) {
 
 	if j.Body != "a" {
 		t.Errorf("expedted body \"a\", got %q", j.Body)
+	}
+}
+
+func TestPeekReplyNotEnoughArgs(t *testing.T) {
+	rw, _ := responder("FOUND\na\n")
+	c := newConn("<fake>", rw)
+	j, err := c.Peek(1)
+
+	if j != nil {
+		t.Errorf("unexpected job %#v", j)
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "peek 1\r\n" {
+		t.Errorf("expected peek command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != BadReply {
+		t.Fatalf("expected beanstalk.BadReply, got %v", berr.Error)
 	}
 }
 
