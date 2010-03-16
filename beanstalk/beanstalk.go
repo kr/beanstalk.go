@@ -453,7 +453,7 @@ func (c Conn) checkForJob(cmd string, r result, s string) (*Job, os.Error) {
 	return &Job{id, r.body}, nil
 }
 
-// Reserve a job from the default tube.
+// Get a copy of the specified job.
 func (c Conn) Peek(id uint64) (*Job, os.Error) {
 	cmd := fmt.Sprintf("peek %d\r\n", id)
 	p := make(chan result)
@@ -514,7 +514,7 @@ func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	return t.c.put(t.Name, body, pri, delay, ttr)
 }
 
-// Reserve a job from the default tube.
+// Get a copy of the next ready job in this tube, if any.
 func (t Tube) PeekReady() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-ready\r\n")
 	p := make(chan result)
@@ -526,7 +526,7 @@ func (t Tube) PeekReady() (*Job, os.Error) {
 	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
-// Reserve a job from the default tube.
+// Get a copy of the next delayed job in this tube, if any.
 func (t Tube) PeekDelayed() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-delayed\r\n")
 	p := make(chan result)
@@ -538,6 +538,7 @@ func (t Tube) PeekDelayed() (*Job, os.Error) {
 	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
+// Get a copy of a buried job in this tube, if any.
 func (t Tube) PeekBuried() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-buried\r\n")
 	p := make(chan result)
