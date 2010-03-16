@@ -155,7 +155,10 @@ func append(ops, more []op) []op {
 		ops[l + i] = o
 	}
 	return ops
+}
 
+func append1(ops []op, o op) []op {
+	return append(ops, []op{o})
 }
 
 // Read from toSend as many items as possible without blocking.
@@ -181,7 +184,8 @@ func (o op) resolveErr(line string, err os.Error) {
 	o.resolve(line, "", "", []string{}, err)
 }
 
-func optTube(tube string, ops []op) (string, []op) {
+// Optimize ops WRT the used tube.
+func optUsed(tube string, ops []op) (string, []op) {
 	newOps := make([]op, 0, len(ops))
 	for _, o := range ops {
 		if o.cmd[0:4] == "use " {
@@ -202,6 +206,53 @@ func optTube(tube string, ops []op) (string, []op) {
 	return tube, newOps
 }
 
+func watchOp(tube string) (o op) {
+	o.cmd = fmt.Sprintf("watch %s\r\n", tube)
+	o.promise = make(chan result)
+	return
+}
+
+func ignoreOp(tube string) (o op) {
+	o.cmd = fmt.Sprintf("ignore %s\r\n", tube)
+	o.promise = make(chan result)
+	return
+}
+
+// Optimize/generate ops WRT the Watch list.
+func optWatched(tubes []string, ops []op) ([]string, []op) {
+	tubeMap := make(map[string]bool)
+	for _, s := range tubes {
+		tubeMap[s] = true
+	}
+	newOps := make([]op, 0, len(ops))
+	for _, o := range ops {
+		if strings.HasPrefix(o.cmd, "reserve-with-timeout ") {
+			newTubes := o.tubes
+			newTubeMap := make(map[string]bool)
+			for _, s := range newTubes {
+				newTubeMap[s] = true
+			}
+
+			for _, s := range newTubes {
+				if _, ok := tubeMap[s]; !ok {
+					newOps = append1(newOps, watchOp(s))
+				}
+			}
+
+			for _, s := range tubes {
+				if _, ok := newTubeMap[s]; !ok {
+					newOps = append1(newOps, ignoreOp(s))
+				}
+			}
+
+			tubes = newTubes
+			tubeMap = newTubeMap
+		}
+		newOps = append1(newOps, o)
+	}
+	return tubes, newOps
+}
+
 // Reordering, compressing, optimization.
 func prepare(ops []op) string {
 	var cmds vector.StringVector
@@ -213,13 +264,24 @@ func prepare(ops []op) string {
 }
 
 func send(toSend <-chan []op, wr io.Writer, sent chan<- op) {
-	tube := "default"
+	used := "default"
+	watched := []string{"default"}
 	for {
 		ops := collect(toSend)
-		tube, ops = optTube(tube, ops)
+		used, ops = optUsed(used, ops)
+		watched, ops = optWatched(watched, ops)
 		cmds := prepare(ops)
 
-		io.WriteString(wr, cmds)
+		n, err := io.WriteString(wr, cmds)
+
+		if err != nil {
+			fmt.Printf("got err %s\n", err)
+		}
+
+		if n != len(cmds) {
+			fmt.Printf("bad len %d != %d\n", n, len(cmds))
+		}
+
 		for _, o := range ops {
 			sent <- o
 		}
@@ -235,7 +297,6 @@ func bodyLen(reply string, args []string) int {
 		}
 		l, err := strconv.Atoi(args[1])
 		if err != nil {
-			fmt.Println("err", err)
 			return 0
 		}
 		return l
