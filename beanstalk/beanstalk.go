@@ -3,6 +3,31 @@
 // We are lenient about the protocol -- we accept either CR LF or just LF to
 // terminate server replies. We also trim white space around words in reply
 // lines.
+//
+// To open a connection and the default tube, do
+//
+//   c := beanstalk.Open("localhost:11300")
+//   t := c.Tube("default")
+//
+// The default interface blocks. To submit a job and get its id, do
+//
+//   id := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+//   doStuff(id)
+//
+// If you don't care about the id, you don't have to wait around for it to
+// finish:
+//
+//   go t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+//   rightAway()
+//
+// If you don't want to wait but still need the id, it's still easy:
+//
+//   go func() {
+//     id := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+//     doStuff(id)
+//   }()
+//   rightAway()
+//
 package beanstalk
 
 import (
@@ -24,16 +49,22 @@ type Job struct {
 	Body string
 }
 
+// A connection to beanstalkd. Provides methods that operate outside of any
+// tube.
 type Conn struct {
 	Name string
 	ch chan<- []op
 }
 
+// Represents a single tube. Provides methods that operate on one tube,
+// especially Put.
 type Tube struct {
 	Name string
 	c Conn
 }
 
+// Represents a set of tubes. Provides methods that operate on several tubes at
+// once, especially Reserve.
 type Tubes struct {
 	Names []string
 	c Conn
@@ -474,9 +505,11 @@ func (c Conn) Tubes(names []string) Tubes {
 	return Tubes{names, c}
 }
 
-// Reserve a job from any one of the tubes in t.
-func (t Tubes) Reserve(ttr Usec) (*Job, os.Error) {
-	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", ttr.Seconds())
+// Reserve a job from any one of the tubes in t. The server will wait up to the
+// timeout before returning with an error response. Typically the timeout is
+// very large -- effectively infinite.
+func (t Tubes) Reserve(timeout Usec) (*Job, os.Error) {
+	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", timeout.Seconds())
 	p := make(chan result)
 	o := op{cmd, t.Names, p}
 
