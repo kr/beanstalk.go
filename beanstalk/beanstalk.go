@@ -41,7 +41,8 @@ import (
 	"strings"
 )
 
-// Microseconds
+// Microseconds. TODO get rid of this type and just document the
+// Tubes.SetTimeout method.
 type Usec int64
 
 type Job struct {
@@ -67,6 +68,7 @@ type Tube struct {
 // once, especially Reserve.
 type Tubes struct {
 	Names []string
+	timeout Usec
 	c Conn
 }
 
@@ -502,14 +504,12 @@ func (c Conn) Tube(name string) Tube {
 }
 
 func (c Conn) Tubes(names []string) Tubes {
-	return Tubes{names, c}
+	return Tubes{names, Infinity, c}
 }
 
-// Reserve a job from any one of the tubes in t. The server will wait up to the
-// timeout before returning with an error response. Typically the timeout is
-// very large -- effectively infinite.
-func (t Tubes) Reserve(timeout Usec) (*Job, os.Error) {
-	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", timeout.Seconds())
+// Reserve a job from any one of the tubes in t.
+func (t Tubes) Reserve() (*Job, os.Error) {
+	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", t.timeout.Seconds())
 	p := make(chan result)
 	o := op{cmd, t.Names, p}
 
