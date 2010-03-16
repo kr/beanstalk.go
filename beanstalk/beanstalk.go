@@ -16,9 +16,8 @@ import (
 	"strings"
 )
 
-type Tubes interface {
-	Reserve(uint32) (Job, os.Error)
-}
+// Microseconds
+type Usec int64
 
 type Job struct {
 	Id uint64
@@ -32,6 +31,11 @@ type Conn struct {
 
 type Tube struct {
 	Name string
+	c Conn
+}
+
+type Tubes struct {
+	Names []string
 	c Conn
 }
 
@@ -65,6 +69,9 @@ const (
 	notFound
 	notIgnored
 )
+
+// For timeouts. Actually not infinite; merely large. About 126 years.
+const Infinity = Usec(4000000000000000)
 
 // Error responses that can be returned by the server.
 var (
@@ -112,8 +119,17 @@ func (e replyError) String() string {
 	return "Server " + errorNames[e]
 }
 
+func (x Usec) Milliseconds() int64 {
+	return int64(x) / 1000
+}
+
+func (x Usec) Seconds() int64 {
+	return x.Milliseconds() / 1000
+}
+
 type op struct {
 	cmd string
+	tubes []string // For commands that depend on the watch list.
 	promise chan<- result
 }
 
@@ -213,7 +229,7 @@ func send(toSend <-chan []op, wr io.Writer, sent chan<- op) {
 
 func bodyLen(reply string, args []string) int {
 	switch reply {
-	case "FOUND":
+	case "FOUND", "RESERVED":
 		if len(args) != 2 {
 			return 0
 		}
@@ -307,11 +323,11 @@ func newConn(name string, rw io.ReadWriter) Conn {
 func (c Conn) put(tube string, body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	cmd1 := fmt.Sprintf("use %s\r\n", tube)
 	p1 := make(chan result)
-	o1 := op{cmd1, p1}
+	o1 := op{cmd1, []string{}, p1}
 
 	cmd2 := fmt.Sprintf("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
 	p2 := make(chan result)
-	o2 := op{cmd2, p2}
+	o2 := op{cmd2, []string{}, p2}
 
 	c.ch <- []op{o1, o2}
 
@@ -350,7 +366,7 @@ func (c Conn) put(tube string, body string, pri, delay, ttr uint32) (uint64, os.
 	return id, nil
 }
 
-func (c Conn) peekResult(cmd string, r result) (*Job, os.Error) {
+func (c Conn) checkForJob(cmd string, r result, s string) (*Job, os.Error) {
 	if r.err != nil {
 		return nil, Error{c, cmd, r.line, r.err}
 	}
@@ -359,7 +375,7 @@ func (c Conn) peekResult(cmd string, r result) (*Job, os.Error) {
 		return nil, Error{c, cmd, r.line, NotFound}
 	}
 
-	if r.name != "FOUND" {
+	if r.name != s {
 		return nil, Error{c, cmd, r.line, BadReply}
 	}
 
@@ -381,11 +397,11 @@ func (c Conn) Peek(id uint64) (*Job, os.Error) {
 	cmd := fmt.Sprintf("peek %d\r\n", id)
 	p := make(chan result)
 
-	o := op{cmd, p}
+	o := op{cmd, []string{}, p}
 	c.ch <- []op{o}
 
 	r := <-p
-	return c.peekResult(cmd, r)
+	return c.checkForJob(cmd, r, "FOUND")
 }
 
 // A convenient way to submit many jobs to the same tube.
@@ -393,9 +409,20 @@ func (c Conn) Tube(name string) Tube {
 	return Tube{name, c}
 }
 
-// Reserve a job from the default tube.
-func (c Conn) Reserve(ttr uint) (*Job, os.Error) {
-	return new(Job), Error{c, "the cmd", "", InternalError}
+func (c Conn) Tubes(names []string) Tubes {
+	return Tubes{names, c}
+}
+
+// Reserve a job from any one of the tubes in t.
+func (t Tubes) Reserve(ttr Usec) (*Job, os.Error) {
+	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", ttr.Seconds())
+	p := make(chan result)
+	o := op{cmd, t.Names, p}
+
+	t.c.ch <- []op{o}
+
+	r := <-p
+	return t.c.checkForJob(cmd, r, "RESERVED")
 }
 
 // Delete a job.
@@ -403,7 +430,7 @@ func (c Conn) delete(id uint64) os.Error {
 	cmd := fmt.Sprintf("delete %d\r\n", id)
 	p := make(chan result)
 
-	o := op{cmd, p}
+	o := op{cmd, []string{}, p}
 	c.ch <- []op{o}
 
 	r := <-p
@@ -431,11 +458,11 @@ func (t Tube) PeekReady() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-ready\r\n")
 	p := make(chan result)
 
-	o := op{cmd, p}
+	o := op{cmd, []string{}, p}
 	t.c.ch <- []op{o}
 
 	r := <-p
-	return t.c.peekResult(cmd, r)
+	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
 // Reserve a job from the default tube.
@@ -443,22 +470,22 @@ func (t Tube) PeekDelayed() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-delayed\r\n")
 	p := make(chan result)
 
-	o := op{cmd, p}
+	o := op{cmd, []string{}, p}
 	t.c.ch <- []op{o}
 
 	r := <-p
-	return t.c.peekResult(cmd, r)
+	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
 func (t Tube) PeekBuried() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-buried\r\n")
 	p := make(chan result)
 
-	o := op{cmd, p}
+	o := op{cmd, []string{}, p}
 	t.c.ch <- []op{o}
 
 	r := <-p
-	return t.c.peekResult(cmd, r)
+	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
 /*
