@@ -459,6 +459,11 @@ func (t Tube) cmd(format string, a ...interface{}) result {
 	return t.c.cmdWait(cmd, t.Name, []string{})
 }
 
+func (t Tubes) cmd(format string, a ...interface{}) result {
+	cmd := fmt.Sprintf(format, a)
+	return t.c.cmdWait(cmd, "", t.Names)
+}
+
 // Put a job into the queue.
 func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	c := t.c
@@ -532,8 +537,7 @@ func (c Conn) Tubes(names []string) Tubes {
 
 // Reserve a job from any one of the tubes in t.
 func (t Tubes) Reserve() (*Job, os.Error) {
-	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", t.timeout.Seconds())
-	r := t.c.cmdWait(cmd, "", t.Names)
+	r := t.cmd("reserve-with-timeout %d\r\n", t.timeout.Seconds())
 	return t.c.checkForJob(r, "RESERVED")
 }
 
