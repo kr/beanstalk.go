@@ -517,8 +517,7 @@ func (c Conn) checkForJob(r result, s string) (*Job, os.Error) {
 
 // Get a copy of the specified job.
 func (c Conn) Peek(id uint64) (*Job, os.Error) {
-	r := c.cmd("peek %d\r\n", id)
-	return c.checkForJob(r, "FOUND")
+	return c.checkForJob(c.cmd("peek %d\r\n", id), "FOUND")
 }
 
 // A convenient way to submit many jobs to the same tube.
@@ -557,20 +556,17 @@ func (c Conn) delete(id uint64) os.Error {
 
 // Get a copy of the next ready job in this tube, if any.
 func (t Tube) PeekReady() (*Job, os.Error) {
-	r := t.cmd("peek-ready\r\n")
-	return t.c.checkForJob(r, "FOUND")
+	return t.c.checkForJob(t.cmd("peek-ready\r\n"), "FOUND")
 }
 
 // Get a copy of the next delayed job in this tube, if any.
 func (t Tube) PeekDelayed() (*Job, os.Error) {
-	r := t.cmd("peek-delayed\r\n")
-	return t.c.checkForJob(r, "FOUND")
+	return t.c.checkForJob(t.cmd("peek-delayed\r\n"), "FOUND")
 }
 
 // Get a copy of a buried job in this tube, if any.
 func (t Tube) PeekBuried() (*Job, os.Error) {
-	r := t.cmd("peek-buried\r\n")
-	return t.c.checkForJob(r, "FOUND")
+	return t.c.checkForJob(t.cmd("peek-buried\r\n"), "FOUND")
 }
 
 /*
