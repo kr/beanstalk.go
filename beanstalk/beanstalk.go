@@ -53,7 +53,7 @@ type Job struct {
 // tube.
 type Conn struct {
 	Name string
-	ch chan<- []op
+	ch chan<- op
 }
 
 // Represents a single tube. Provides methods that operate on one tube,
@@ -196,13 +196,12 @@ func append1(ops []op, o op) []op {
 }
 
 // Read from toSend as many items as possible without blocking.
-func collect(toSend <-chan []op) (ops []op) {
-	seq := <-toSend
-	ops = append(ops, seq)
+func collect(toSend <-chan op) (ops []op) {
+	o, more := <-toSend, true // blocking
 
-	for more := true; more; {
-		seq, more = <-toSend
-		ops = append(ops, seq)
+	for more {
+		ops = append1(ops, o)
+		o, more = <-toSend // non-blocking
 	}
 
 	return
@@ -336,7 +335,7 @@ func prepare(ops []op) string {
 	return strings.Join([]string(cmds), "")
 }
 
-func send(toSend <-chan []op, wr io.Writer, sent chan<- op) {
+func send(toSend <-chan op, wr io.Writer, sent chan<- op) {
 	used := "default"
 	watched := []string{"default"}
 	for {
@@ -439,7 +438,7 @@ func flow(in chan op, out chan op) {
 // The name parameter should be descriptive. It is usually the remote address
 // of the connection.
 func newConn(name string, rw io.ReadWriter) Conn {
-	toSend := make(chan []op)
+	toSend := make(chan op)
 	a, b := make(chan op), make(chan op)
 
 	go send(toSend, rw, a)
@@ -451,7 +450,7 @@ func newConn(name string, rw io.ReadWriter) Conn {
 
 func (c Conn) cmd(cmd string, tube string, tubes []string) result {
 	p := make(chan result)
-	c.ch <- []op{op{cmd, tube, tubes, p}}
+	c.ch <- op{cmd, tube, tubes, p}
 	return <-p
 }
 
