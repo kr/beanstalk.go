@@ -413,8 +413,10 @@ func newConn(name string, rw io.ReadWriter) Conn {
 }
 
 // Put a job into the queue.
-func (c Conn) put(tube string, body string, pri, delay, ttr uint32) (uint64, os.Error) {
-	cmd1 := fmt.Sprintf("use %s\r\n", tube)
+func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
+	c := t.c
+
+	cmd1 := fmt.Sprintf("use %s\r\n", t.Name)
 	p1 := make(chan result)
 	o1 := op{cmd1, []string{}, p1}
 
@@ -540,10 +542,6 @@ func (c Conn) delete(id uint64) os.Error {
 	}
 
 	return nil
-}
-
-func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
-	return t.c.put(t.Name, body, pri, delay, ttr)
 }
 
 // Get a copy of the next ready job in this tube, if any.
