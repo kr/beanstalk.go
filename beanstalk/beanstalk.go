@@ -292,7 +292,7 @@ func optWatched(tubes []string, ops []op) ([]string, []op) {
 	}
 	newOps := make([]op, 0, len(ops))
 	for _, o := range ops {
-		if strings.HasPrefix(o.cmd, "reserve-with-timeout ") {
+		if len(o.tubes) > 0 {
 			newTubes := o.tubes
 			newTubeMap := make(map[string]bool)
 			for _, s := range newTubes {
