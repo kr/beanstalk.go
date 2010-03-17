@@ -504,7 +504,7 @@ func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	return id, nil
 }
 
-func (c Conn) checkForJob(r result, s string) (*Job, os.Error) {
+func (r result) checkForJob(c Conn, s string) (*Job, os.Error) {
 	if r.err != nil {
 		return nil, Error{c, r.cmd, r.line, r.err}
 	}
@@ -548,7 +548,7 @@ func parseDict(s string) map[string]string {
 	return d
 }
 
-func (c Conn) checkForDict(r result) (map[string]string, os.Error) {
+func (r result) checkForDict(c Conn) (map[string]string, os.Error) {
 	if r.err != nil {
 		return nil, Error{c, r.cmd, r.line, r.err}
 	}
@@ -566,11 +566,11 @@ func (c Conn) checkForDict(r result) (map[string]string, os.Error) {
 
 // Get a copy of the specified job.
 func (c Conn) Peek(id uint64) (*Job, os.Error) {
-	return c.checkForJob(c.cmd("peek %d\r\n", id), "FOUND")
+	return c.cmd("peek %d\r\n", id).checkForJob(c, "FOUND")
 }
 
 func (c Conn) Stats() (map[string]string, os.Error) {
-	return c.checkForDict(c.cmd("stats\r\n"))
+	return c.cmd("stats\r\n").checkForDict(c)
 }
 
 // A convenient way to submit many jobs to the same tube.
@@ -585,29 +585,29 @@ func (c Conn) Tubes(names []string) Tubes {
 // Reserve a job from any one of the tubes in t.
 func (t Tubes) Reserve() (*Job, os.Error) {
 	r := t.cmd("reserve-with-timeout %d\r\n", t.timeout.Seconds())
-	return t.c.checkForJob(r, "RESERVED")
+	return r.checkForJob(t.c, "RESERVED")
 }
 
 // Get a copy of the next ready job in this tube, if any.
 func (t Tube) PeekReady() (*Job, os.Error) {
-	return t.c.checkForJob(t.cmd("peek-ready\r\n"), "FOUND")
+	return t.cmd("peek-ready\r\n").checkForJob(t.c, "FOUND")
 }
 
 // Get a copy of the next delayed job in this tube, if any.
 func (t Tube) PeekDelayed() (*Job, os.Error) {
-	return t.c.checkForJob(t.cmd("peek-delayed\r\n"), "FOUND")
+	return t.cmd("peek-delayed\r\n").checkForJob(t.c, "FOUND")
 }
 
 // Get a copy of a buried job in this tube, if any.
 func (t Tube) PeekBuried() (*Job, os.Error) {
-	return t.c.checkForJob(t.cmd("peek-buried\r\n"), "FOUND")
+	return t.cmd("peek-buried\r\n").checkForJob(t.c, "FOUND")
 }
 
 // Get statistics on tube t.
 func (t Tube) Stats() (map[string]string, os.Error) {
 	// Note: do not use t.cmd -- this doesn't depend on the "currently
 	// used" tube.
-	return t.c.checkForDict(t.c.cmd("stats-tube %s\r\n", t.Name))
+	return t.c.cmd("stats-tube %s\r\n", t.Name).checkForDict(t.c)
 }
 
 // Kick up to n jobs in tube t.
@@ -677,6 +677,6 @@ func (j Job) Touch() os.Error {
 
 // Get statistics on job j.
 func (j Job) Stats() (map[string]string, os.Error) {
-	return j.c.checkForDict(j.c.cmd("stats-job %d\r\n", j.Id))
+	return j.c.cmd("stats-job %d\r\n", j.Id).checkForDict(j.c)
 }
 
