@@ -863,6 +863,33 @@ func TestParseDictMissingFinalNewline(t *testing.T) {
 	}
 }
 
+func TestParseList(t *testing.T) {
+	in := "---\n- 1\n- y\n"
+	got := parseList(in)
+	exp := []string{"1", "y"}
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("list doesn't match, got %#v", got)
+	}
+}
+
+func TestParseListMissingDocSep(t *testing.T) {
+	in := "- 1\n- y\n"
+	got := parseList(in)
+	exp := []string{"1", "y"}
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("list doesn't match, got %#v", got)
+	}
+}
+
+func TestParseListMissingFinalNewline(t *testing.T) {
+	in := "---\n- 1\n- y"
+	got := parseList(in)
+	exp := []string{"1", "y"}
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("list doesn't match, got %#v", got)
+	}
+}
+
 func TestKick(t *testing.T) {
 	rw, buf := responder("KICKED 3\n")
 	c := newConn("<fake>", rw)
@@ -1195,6 +1222,29 @@ func TestReleaseBuried(t *testing.T) {
 
 	if berr.Error != Buried {
 		t.Fatalf("expected beanstalk.Buried, got %v", berr.Error)
+	}
+}
+
+func TestListTubes(t *testing.T) {
+	rw, buf := responder("OK 20\n---\n- default\n- foo\n\r\n")
+	c := newConn("<fake>", rw)
+	tubes, err := c.ListTubes()
+
+	if buf.String() != "list-tubes\r\n" {
+		t.Errorf("expected list-tubes command, got %q", buf.String())
+	}
+
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	if tubes == nil {
+		t.Fatal("tubes is nil")
+	}
+
+	exp := []string{"default", "foo"}
+	if !reflect.DeepEqual(tubes, exp) {
+		t.Errorf("tubes doesn't match, got %#v", tubes)
 	}
 }
 

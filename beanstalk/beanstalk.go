@@ -529,6 +529,23 @@ func parseDict(s string) map[string]string {
 	return d
 }
 
+func parseList(s string) []string {
+	if strings.HasPrefix(s, "---") {
+		s = s[3:]
+	}
+	s = strings.TrimSpace(s)
+	lines := strings.Split(s, "\n", 0)
+	a := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if !strings.HasPrefix(line, "- ") {
+			continue
+		}
+		a = a[0:len(a) + 1]
+		a[len(a) - 1] = line[2:]
+	}
+	return a
+}
+
 func (r result) checkForDict(c Conn) (map[string]string, os.Error) {
 	if r.err != nil {
 		return nil, Error{c, r.cmd, r.line, r.err}
@@ -545,6 +562,22 @@ func (r result) checkForDict(c Conn) (map[string]string, os.Error) {
 	return parseDict(r.body), nil
 }
 
+func (r result) checkForList(c Conn) ([]string, os.Error) {
+	if r.err != nil {
+		return nil, Error{c, r.cmd, r.line, r.err}
+	}
+
+	if r.name != "OK" {
+		return nil, Error{c, r.cmd, r.line, BadReply}
+	}
+
+	if len(r.args) != 1 {
+		return nil, Error{c, r.cmd, r.line, BadReply}
+	}
+
+	return parseList(r.body), nil
+}
+
 // Get a copy of the specified job.
 func (c Conn) Peek(id uint64) (*Job, os.Error) {
 	return c.cmd("peek %d\r\n", id).checkForJob(c, "FOUND")
@@ -552,6 +585,10 @@ func (c Conn) Peek(id uint64) (*Job, os.Error) {
 
 func (c Conn) Stats() (map[string]string, os.Error) {
 	return c.cmd("stats\r\n").checkForDict(c)
+}
+
+func (c Conn) ListTubes() ([]string, os.Error) {
+	return c.cmd("list-tubes\r\n").checkForList(c)
 }
 
 // A convenient way to submit many jobs to the same tube.
