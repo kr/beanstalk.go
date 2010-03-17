@@ -537,24 +537,6 @@ func (t Tubes) Reserve() (*Job, os.Error) {
 	return t.c.checkForJob(r, "RESERVED")
 }
 
-// Delete a job.
-func (c Conn) delete(id uint64) os.Error {
-	r := c.cmd("delete %d\r\n", id)
-	if r.err != nil {
-		return Error{c, r.cmd, r.line, r.err}
-	}
-
-	if r.name == "NOT_FOUND" {
-		return Error{c, r.cmd, r.line, NotFound}
-	}
-
-	if r.name != "DELETED" {
-		return Error{c, r.cmd, r.line, BadReply}
-	}
-
-	return nil
-}
-
 // Get a copy of the next ready job in this tube, if any.
 func (t Tube) PeekReady() (*Job, os.Error) {
 	return t.c.checkForJob(t.cmd("peek-ready\r\n"), "FOUND")
@@ -570,6 +552,20 @@ func (t Tube) PeekBuried() (*Job, os.Error) {
 	return t.c.checkForJob(t.cmd("peek-buried\r\n"), "FOUND")
 }
 
+// Delete job j.
 func (j Job) Delete() os.Error {
-	return j.c.delete(j.Id)
+	r := j.c.cmd("delete %d\r\n", j.Id)
+	if r.err != nil {
+		return Error{j.c, r.cmd, r.line, r.err}
+	}
+
+	if r.name == "NOT_FOUND" {
+		return Error{j.c, r.cmd, r.line, NotFound}
+	}
+
+	if r.name != "DELETED" {
+		return Error{j.c, r.cmd, r.line, BadReply}
+	}
+
+	return nil
 }
