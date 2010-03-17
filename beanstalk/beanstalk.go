@@ -9,24 +9,19 @@
 //   c := beanstalk.Open("localhost:11300")
 //   t := c.Tube("default")
 //
-// The default interface blocks. To submit a job and get its id, do
+// The interface blocks for simplicity. To submit a job and get its id, do
 //
-//   id := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
-//   doStuff(id)
+//   id, err := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
 //
-// If you don't care about the id, you don't have to wait around for it to
-// finish:
+// If you don't care about the id, don't wait around for it to finish:
 //
 //   go t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
-//   rightAway()
 //
 // If you don't want to wait but still need the id, it's still easy:
 //
 //   go func() {
-//     id := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
-//     doStuff(id)
+//     id, err := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
 //   }()
-//   rightAway()
 //
 package beanstalk
 
@@ -84,72 +79,32 @@ func (e Error) String() string {
 	return fmt.Sprintf("%s: %q -> %q: %s", e.Conn.Name, e.Cmd, e.Reply, e.Error.String());
 }
 
-// This type implements os.Error.
-type replyError int
-
-const (
-	badReply replyError = iota
-	outOfMemory
-	internalError
-	draining
-	badFormat
-	unknownCommand
-	buried
-	expectedCrLf
-	jobTooBig
-	deadlineSoon
-	timedOut
-	notFound
-	notIgnored
-)
-
-// For timeouts. Actually not infinite; merely large. About 126 years.
+// For timeouts. Not really infinite; merely large. About 126 years.
 const Infinity = µs(4000000000000000)
 
-// Error responses that can be returned by the server.
+// The server sent a bad reply. For example: unknown or inappropriate
+// response, wrong number of terms, or invalid format.
+var BadReply = os.NewError("Bad Reply from Server")
+
+// Error responses that the server can return.
 var (
-
-	// The server sent a bad reply. For example: unknown or inappropriate
-	// response, wrong number of terms, or invalid format.
-	BadReply os.Error = badReply
-
-	OutOfMemory os.Error = outOfMemory
-	InternalError os.Error = internalError
-	Draining os.Error = draining
-	BadFormat os.Error = badFormat
-	UnknownCommand os.Error = unknownCommand
-	Buried os.Error = buried
-	ExpectedCrLf os.Error = expectedCrLf
-	JobTooBig os.Error = jobTooBig
-	DeadlineSoon os.Error = deadlineSoon
-	TimedOut os.Error = timedOut
-	NotFound os.Error = notFound
-	NotIgnored os.Error = notIgnored
+	OutOfMemory = os.NewError("Server Out of Memory")
+	InternalError = os.NewError("Server Internal Error")
+	Draining = os.NewError("Server Draining")
+	BadFormat = os.NewError("Bad Command Format")
+	UnknownCommand = os.NewError("Unknown Command")
+	Buried = os.NewError("Buried")
+	ExpectedCrLf = os.NewError("Server Expected CR LF")
+	JobTooBig = os.NewError("Job Too Big")
+	DeadlineSoon = os.NewError("Job Deadline Soon")
+	TimedOut = os.NewError("Reserve Timed Out")
+	NotFound = os.NewError("Job Not Found")
+	NotIgnored = os.NewError("Tube Not Ignored")
 )
-
-var errorNames []string = []string {
-	"Bad Reply",
-	"Out of Memory",
-	"Internal Error",
-	"Draining",
-	"Bad Format",
-	"Unknown Command",
-	"Buried",
-	"Expected CR LF",
-	"Job Too Big",
-	"Deadline Soon",
-	"Timed Out",
-	"Not Found",
-	"Not Ignored",
-}
 
 var replyErrors = map[string]os.Error {
 	"INTERNAL_ERROR": InternalError,
 	"OUT_OF_MEMORY": OutOfMemory,
-}
-
-func (e replyError) String() string {
-	return "Server " + errorNames[e]
 }
 
 func (x µs) Milliseconds() int64 {
@@ -473,8 +428,9 @@ func (t Tubes) cmd(format string, a ...interface{}) result {
 	return t.c.cmdWait(cmd, "", t.Names)
 }
 
-// Put a job into the queue.
-func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
+// Put a job into the queue and return its id. If an error occured, err will be
+// non-nil. For some errors, Put will also return a valid job id.
+func (t Tube) Put(body string, pri, delay, ttr uint32) (id uint64, err os.Error) {
 	r := t.cmd("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
 	return r.checkForInt(t.c, "INSERTED")
 }
