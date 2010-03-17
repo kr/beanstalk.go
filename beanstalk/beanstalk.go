@@ -175,24 +175,18 @@ type result struct {
 	err os.Error // An error, if any.
 }
 
-func append(ops, more []op) []op {
+func push(ops []op, o op) []op {
 	l := len(ops)
-	if l + len(more) > cap(ops) { // need to grow?
-		newOps := make([]op, (l + len(more)) * 2) // double
+	if l + 1 > cap(ops) { // need to grow?
+		newOps := make([]op, (l + 1) * 2) // double
 		for i, o := range ops {
 			newOps[i] = o
 		}
 		ops = newOps
 	}
-	ops = ops[0:l + len(more)] // increase the len, not the cap
-	for i, o := range more {
-		ops[l + i] = o
-	}
+	ops = ops[0:l + 1] // increase the len, not the cap
+	ops[l] = o
 	return ops
-}
-
-func append1(ops []op, o op) []op {
-	return append(ops, []op{o})
 }
 
 // Read from toSend as many items as possible without blocking.
@@ -200,7 +194,7 @@ func collect(toSend <-chan op) (ops []op) {
 	o, more := <-toSend, true // blocking
 
 	for more {
-		ops = append1(ops, o)
+		ops = push(ops, o)
 		o, more = <-toSend // non-blocking
 	}
 
@@ -229,12 +223,12 @@ func optUsed(tube string, ops []op) (string, []op) {
 			if newTube != tube {
 				var use op
 				o, use = useOp(newTube, o)
-				newOps = append1(newOps, use)
+				newOps = push(newOps, use)
 			}
 
 			tube = newTube
 		}
-		newOps = append1(newOps, o)
+		newOps = push(newOps, o)
 	}
 	return tube, newOps
 }
@@ -307,20 +301,20 @@ func optWatched(tubes []string, ops []op) ([]string, []op) {
 
 			for _, s := range newTubes {
 				if _, ok := tubeMap[s]; !ok {
-					newOps = append1(newOps, watchOp(s))
+					newOps = push(newOps, watchOp(s))
 				}
 			}
 
 			for _, s := range tubes {
 				if _, ok := newTubeMap[s]; !ok {
-					newOps = append1(newOps, ignoreOp(s))
+					newOps = push(newOps, ignoreOp(s))
 				}
 			}
 
 			tubes = newTubes
 			tubeMap = newTubeMap
 		}
-		newOps = append1(newOps, o)
+		newOps = push(newOps, o)
 	}
 	return tubes, newOps
 }
