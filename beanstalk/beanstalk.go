@@ -449,17 +449,19 @@ func newConn(name string, rw io.ReadWriter) Conn {
 	return Conn{name, toSend}
 }
 
+func (c Conn) cmd(cmd string, tube string, tubes []string) result {
+	p := make(chan result)
+	c.ch <- []op{op{cmd, tube, tubes, p}}
+	return <-p
+}
+
 // Put a job into the queue.
 func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	c := t.c
 
 	cmd := fmt.Sprintf("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
-	p := make(chan result)
-	o := op{cmd, t.Name, []string{}, p}
+	r := t.c.cmd(cmd, t.Name, []string{})
 
-	c.ch <- []op{o}
-
-	r := <-p
 	if r.err != nil {
 		return 0, Error{c, r.cmd, r.line, r.err}
 	}
@@ -514,12 +516,7 @@ func (c Conn) checkForJob(cmd string, r result, s string) (*Job, os.Error) {
 // Get a copy of the specified job.
 func (c Conn) Peek(id uint64) (*Job, os.Error) {
 	cmd := fmt.Sprintf("peek %d\r\n", id)
-	p := make(chan result)
-
-	o := op{cmd, "", []string{}, p}
-	c.ch <- []op{o}
-
-	r := <-p
+	r := c.cmd(cmd, "", []string{})
 	return c.checkForJob(cmd, r, "FOUND")
 }
 
@@ -535,24 +532,14 @@ func (c Conn) Tubes(names []string) Tubes {
 // Reserve a job from any one of the tubes in t.
 func (t Tubes) Reserve() (*Job, os.Error) {
 	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", t.timeout.Seconds())
-	p := make(chan result)
-	o := op{cmd, "", t.Names, p}
-
-	t.c.ch <- []op{o}
-
-	r := <-p
+	r := t.c.cmd(cmd, "", t.Names)
 	return t.c.checkForJob(cmd, r, "RESERVED")
 }
 
 // Delete a job.
 func (c Conn) delete(id uint64) os.Error {
 	cmd := fmt.Sprintf("delete %d\r\n", id)
-	p := make(chan result)
-
-	o := op{cmd, "", []string{}, p}
-	c.ch <- []op{o}
-
-	r := <-p
+	r := c.cmd(cmd, "", []string{})
 	if r.err != nil {
 		return Error{c, r.cmd, r.line, r.err}
 	}
@@ -571,36 +558,21 @@ func (c Conn) delete(id uint64) os.Error {
 // Get a copy of the next ready job in this tube, if any.
 func (t Tube) PeekReady() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-ready\r\n")
-	p := make(chan result)
-
-	o := op{cmd, "", []string{}, p}
-	t.c.ch <- []op{o}
-
-	r := <-p
+	r := t.c.cmd(cmd, "", []string{})
 	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
 // Get a copy of the next delayed job in this tube, if any.
 func (t Tube) PeekDelayed() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-delayed\r\n")
-	p := make(chan result)
-
-	o := op{cmd, "", []string{}, p}
-	t.c.ch <- []op{o}
-
-	r := <-p
+	r := t.c.cmd(cmd, "", []string{})
 	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
 // Get a copy of a buried job in this tube, if any.
 func (t Tube) PeekBuried() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-buried\r\n")
-	p := make(chan result)
-
-	o := op{cmd, "", []string{}, p}
-	t.c.ch <- []op{o}
-
-	r := <-p
+	r := t.c.cmd(cmd, "", []string{})
 	return t.c.checkForJob(cmd, r, "FOUND")
 }
 
