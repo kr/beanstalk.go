@@ -557,22 +557,19 @@ func (c Conn) delete(id uint64) os.Error {
 
 // Get a copy of the next ready job in this tube, if any.
 func (t Tube) PeekReady() (*Job, os.Error) {
-	cmd := fmt.Sprint("peek-ready\r\n")
-	r := t.c.cmdWait(cmd, "", []string{})
+	r := t.cmd("peek-ready\r\n")
 	return t.c.checkForJob(r, "FOUND")
 }
 
 // Get a copy of the next delayed job in this tube, if any.
 func (t Tube) PeekDelayed() (*Job, os.Error) {
-	cmd := fmt.Sprint("peek-delayed\r\n")
-	r := t.c.cmdWait(cmd, "", []string{})
+	r := t.cmd("peek-delayed\r\n")
 	return t.c.checkForJob(r, "FOUND")
 }
 
 // Get a copy of a buried job in this tube, if any.
 func (t Tube) PeekBuried() (*Job, os.Error) {
-	cmd := fmt.Sprint("peek-buried\r\n")
-	r := t.c.cmdWait(cmd, "", []string{})
+	r := t.cmd("peek-buried\r\n")
 	return t.c.checkForJob(r, "FOUND")
 }
 
