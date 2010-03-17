@@ -610,6 +610,35 @@ func (t Tube) Stats() (map[string]string, os.Error) {
 	return t.c.checkForDict(t.c.cmd("stats-tube %s\r\n", t.Name))
 }
 
+// Kick up to n jobs in tube t.
+func (t Tube) Kick(n uint64) (uint64, os.Error) {
+	r := t.cmd("kick %d\r\n", n)
+
+	if r.err != nil {
+		return 0, Error{t.c, r.cmd, r.line, r.err}
+	}
+
+	if err, ok := replyErrors[r.name]; ok {
+		return 0, Error{t.c, r.cmd, r.line, err}
+	}
+
+	if r.name != "KICKED" {
+		return 0, Error{t.c, r.cmd, r.line, BadReply}
+	}
+
+	if len(r.args) != 1 {
+		return 0, Error{t.c, r.cmd, r.line, BadReply}
+	}
+
+	n, err := strconv.Atoui64(r.args[0])
+
+	if err != nil {
+		return 0, Error{t.c, r.cmd, r.line, BadReply}
+	}
+
+	return n, nil
+}
+
 // Delete job j.
 func (j Job) Delete() os.Error {
 	r := j.c.cmd("delete %d\r\n", j.Id)

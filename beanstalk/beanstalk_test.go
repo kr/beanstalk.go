@@ -863,3 +863,57 @@ func TestParseDictMissingFinalNewline(t *testing.T) {
 	}
 }
 
+func TestKick(t *testing.T) {
+	rw, buf := responder("KICKED 3\n")
+	c := newConn("<fake>", rw)
+	n, err := c.Tube("default").Kick(3)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if n != 3 {
+		t.Error("expected n 3, got", n)
+	}
+
+	if buf.String() != "kick 3\r\n" {
+		t.Errorf("expected kick command, got %q", buf.String())
+	}
+}
+
+func TestKickFewer(t *testing.T) {
+	rw, buf := responder("KICKED 2\n")
+	c := newConn("<fake>", rw)
+	n, err := c.Tube("default").Kick(3)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if n != 2 {
+		t.Error("expected n 2, got", n)
+	}
+
+	if buf.String() != "kick 3\r\n" {
+		t.Errorf("expected kick command, got %q", buf.String())
+	}
+}
+
+func TestKickOtherTube(t *testing.T) {
+	rw, buf := responder("USING foo\nKICKED 3\n")
+	c := newConn("<fake>", rw)
+	n, err := c.Tube("foo").Kick(3)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if n != 3 {
+		t.Error("expected n 3, got", n)
+	}
+
+	if buf.String() != "use foo\r\nkick 3\r\n" {
+		t.Errorf("expected use/kick command, got %q", buf.String())
+	}
+}
+
