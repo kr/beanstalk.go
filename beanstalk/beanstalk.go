@@ -487,7 +487,7 @@ func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	return id, nil
 }
 
-func (c Conn) checkForJob(cmd string, r result, s string) (*Job, os.Error) {
+func (c Conn) checkForJob(r result, s string) (*Job, os.Error) {
 	if r.err != nil {
 		return nil, Error{c, r.cmd, r.line, r.err}
 	}
@@ -517,7 +517,7 @@ func (c Conn) checkForJob(cmd string, r result, s string) (*Job, os.Error) {
 func (c Conn) Peek(id uint64) (*Job, os.Error) {
 	cmd := fmt.Sprintf("peek %d\r\n", id)
 	r := c.cmd(cmd, "", []string{})
-	return c.checkForJob(cmd, r, "FOUND")
+	return c.checkForJob(r, "FOUND")
 }
 
 // A convenient way to submit many jobs to the same tube.
@@ -533,7 +533,7 @@ func (c Conn) Tubes(names []string) Tubes {
 func (t Tubes) Reserve() (*Job, os.Error) {
 	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", t.timeout.Seconds())
 	r := t.c.cmd(cmd, "", t.Names)
-	return t.c.checkForJob(cmd, r, "RESERVED")
+	return t.c.checkForJob(r, "RESERVED")
 }
 
 // Delete a job.
@@ -559,21 +559,21 @@ func (c Conn) delete(id uint64) os.Error {
 func (t Tube) PeekReady() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-ready\r\n")
 	r := t.c.cmd(cmd, "", []string{})
-	return t.c.checkForJob(cmd, r, "FOUND")
+	return t.c.checkForJob(r, "FOUND")
 }
 
 // Get a copy of the next delayed job in this tube, if any.
 func (t Tube) PeekDelayed() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-delayed\r\n")
 	r := t.c.cmd(cmd, "", []string{})
-	return t.c.checkForJob(cmd, r, "FOUND")
+	return t.c.checkForJob(r, "FOUND")
 }
 
 // Get a copy of a buried job in this tube, if any.
 func (t Tube) PeekBuried() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-buried\r\n")
 	r := t.c.cmd(cmd, "", []string{})
-	return t.c.checkForJob(cmd, r, "FOUND")
+	return t.c.checkForJob(r, "FOUND")
 }
 
 /*
