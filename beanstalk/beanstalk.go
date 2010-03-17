@@ -108,6 +108,7 @@ var replyErrors = map[string]os.Error {
 	"NOT_FOUND": NotFound,
 	"BAD_FORMAT": BadFormat,
 	"UNKNOWN_COMMAND": UnknownCommand,
+	"BURIED": Buried,
 }
 
 func (x µs) Milliseconds() int64 {
@@ -495,7 +496,7 @@ func (r result) checkForWord(c Conn, s string) os.Error {
 		return Error{c, r.cmd, r.line, r.err}
 	}
 
-	if err, ok := replyErrors[r.name]; ok {
+	if err, ok := replyErrors[r.name]; ok && r.name != s {
 		return Error{c, r.cmd, r.line, err}
 	}
 
@@ -613,6 +614,12 @@ func (j Job) Touch() os.Error {
 // Bury job j and change its priority to pri.
 func (j Job) Bury(pri uint64) os.Error {
 	return j.c.cmd("bury %d %d\r\n", j.Id, pri).checkForWord(j.c, "BURIED")
+}
+
+// Release job j and change its priority to pri with delay d.
+func (j Job) Release(pri, d uint64) os.Error {
+	r := j.c.cmd("release %d %d %d\r\n", j.Id, pri, d)
+	return r.checkForWord(j.c, "RELEASED")
 }
 
 // Get statistics on job j.

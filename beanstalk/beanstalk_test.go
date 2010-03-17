@@ -1131,3 +1131,70 @@ func TestBuryNotFound(t *testing.T) {
 	}
 }
 
+func TestRelease(t *testing.T) {
+	rw, buf := responder("RELEASED\n")
+	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if buf.String() != "release 1 8 2\r\n" {
+		t.Errorf("expected release command, got %q", buf.String())
+	}
+}
+
+func TestReleaseNotFound(t *testing.T) {
+	rw, _ := responder("NOT_FOUND\n")
+	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2)
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "release 1 8 2\r\n" {
+		t.Errorf("expected release command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
+func TestReleaseBuried(t *testing.T) {
+	rw, _ := responder("BURIED\n")
+	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2)
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "release 1 8 2\r\n" {
+		t.Errorf("expected release command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "BURIED\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != Buried {
+		t.Fatalf("expected beanstalk.Buried, got %v", berr.Error)
+	}
+}
+
