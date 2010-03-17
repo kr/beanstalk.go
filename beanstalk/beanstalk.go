@@ -367,6 +367,15 @@ func bodyLen(reply string, args []string) int {
 			return 0
 		}
 		return l
+	case "OK":
+		if len(args) != 1 {
+			return 0
+		}
+		l, err := strconv.Atoi(args[0])
+		if err != nil {
+			return 0
+		}
+		return l
 	}
 	return 0
 }
@@ -521,9 +530,47 @@ func (c Conn) checkForJob(r result, s string) (*Job, os.Error) {
 	return &Job{id, r.body, c}, nil
 }
 
+func parseDict(s string) map[string]string {
+	d := make(map[string]string)
+	if strings.HasPrefix(s, "---") {
+		s = s[3:]
+	}
+	s = strings.TrimSpace(s)
+	lines := strings.Split(s, "\n", 0)
+	for _, line := range lines {
+		kv := strings.Split(line, ": ", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		k, v := kv[0], kv[1]
+		d[k] = v
+	}
+	return d
+}
+
+func (c Conn) checkForDict(r result) (map[string]string, os.Error) {
+	if r.err != nil {
+		return nil, Error{c, r.cmd, r.line, r.err}
+	}
+
+	if r.name != "OK" {
+		return nil, Error{c, r.cmd, r.line, BadReply}
+	}
+
+	if len(r.args) != 1 {
+		return nil, Error{c, r.cmd, r.line, BadReply}
+	}
+
+	return parseDict(r.body), nil
+}
+
 // Get a copy of the specified job.
 func (c Conn) Peek(id uint64) (*Job, os.Error) {
 	return c.checkForJob(c.cmd("peek %d\r\n", id), "FOUND")
+}
+
+func (c Conn) Stats() (map[string]string, os.Error) {
+	return c.checkForDict(c.cmd("stats\r\n"))
 }
 
 // A convenient way to submit many jobs to the same tube.

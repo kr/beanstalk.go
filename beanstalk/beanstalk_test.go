@@ -5,6 +5,7 @@ import (
 	//"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -419,6 +420,24 @@ func TestTouchNotFound(t *testing.T) {
 	}
 }
 
+func TestStats(t *testing.T) {
+	rw, _ := responder("OK 14\n---\na: 1\nx: y\n\r\n")
+	c := newConn("<fake>", rw)
+	stats, err := c.Stats()
+
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	if stats == nil {
+		t.Fatal("stats is nil")
+	}
+
+	exp := map[string]string{"a": "1", "x": "y"}
+	if !reflect.DeepEqual(stats, exp) {
+		t.Errorf("stats doesn't match, got %#v", stats)
+	}
+}
 
 func TestPeekNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
@@ -765,6 +784,33 @@ func TestReserveAlternateTube(t *testing.T) {
 
 	if j.Body != "a" {
 		t.Errorf("expedted body \"a\", got %q", j.Body)
+	}
+}
+
+func TestParseDict(t *testing.T) {
+	in := "---\na: 1\nx: y\n"
+	got := parseDict(in)
+	exp := map[string]string{"a": "1", "x": "y"}
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("map doesn't match, got %#v", got)
+	}
+}
+
+func TestParseDictMissingDocSep(t *testing.T) {
+	in := "a: 1\nx: y\n"
+	got := parseDict(in)
+	exp := map[string]string{"a": "1", "x": "y"}
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("map doesn't match, got %#v", got)
+	}
+}
+
+func TestParseDictMissingFinalNewline(t *testing.T) {
+	in := "---\na: 1\nx: y"
+	got := parseDict(in)
+	exp := map[string]string{"a": "1", "x": "y"}
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("map doesn't match, got %#v", got)
 	}
 }
 
