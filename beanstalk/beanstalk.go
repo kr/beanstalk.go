@@ -610,6 +610,11 @@ func (j Job) Touch() os.Error {
 	return j.c.cmd("touch %d\r\n", j.Id).checkForWord(j.c, "TOUCHED")
 }
 
+// Bury job j and change its priority to pri.
+func (j Job) Bury(pri uint64) os.Error {
+	return j.c.cmd("bury %d %d\r\n", j.Id, pri).checkForWord(j.c, "BURIED")
+}
+
 // Get statistics on job j.
 func (j Job) Stats() (map[string]string, os.Error) {
 	return j.c.cmd("stats-job %d\r\n", j.Id).checkForDict(j.c)

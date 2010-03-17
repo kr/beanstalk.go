@@ -1091,3 +1091,43 @@ func TestTubeUnknownCommand(t *testing.T) {
 	}
 }
 
+func TestBury(t *testing.T) {
+	rw, buf := responder("BURIED\n")
+	err := Job{1, "a", newConn("<fake>", rw)}.Bury(8)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if buf.String() != "bury 1 8\r\n" {
+		t.Errorf("expected bury command, got %q", buf.String())
+	}
+}
+
+func TestBuryNotFound(t *testing.T) {
+	rw, _ := responder("NOT_FOUND\n")
+	err := Job{1, "a", newConn("<fake>", rw)}.Bury(8)
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "bury 1 8\r\n" {
+		t.Errorf("expected bury command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
