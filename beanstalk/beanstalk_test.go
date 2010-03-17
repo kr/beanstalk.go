@@ -340,8 +340,7 @@ func TestPutUseFail(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	rw, buf := responder("DELETED\n")
-	c := newConn("<fake>", rw)
-	err := c.delete(1)
+	err := Job{1, "a", newConn("<fake>", rw)}.Delete()
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -355,8 +354,7 @@ func TestDelete(t *testing.T) {
 
 func TestDeleteNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
-	c := newConn("<fake>", rw)
-	err := c.delete(1)
+	err := Job{1, "a", newConn("<fake>", rw)}.Delete()
 
 	if err == nil {
 		t.Fatal("expected error, got none")

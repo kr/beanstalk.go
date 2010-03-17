@@ -47,6 +47,7 @@ type µs int64
 type Job struct {
 	Id uint64
 	Body string
+	c Conn
 }
 
 // A connection to beanstalkd. Provides methods that operate outside of any
@@ -512,7 +513,7 @@ func (c Conn) checkForJob(r result, s string) (*Job, os.Error) {
 		return nil, Error{c, r.cmd, r.line, BadReply}
 	}
 
-	return &Job{id, r.body}, nil
+	return &Job{id, r.body, c}, nil
 }
 
 // Get a copy of the specified job.
@@ -569,8 +570,6 @@ func (t Tube) PeekBuried() (*Job, os.Error) {
 	return t.c.checkForJob(t.cmd("peek-buried\r\n"), "FOUND")
 }
 
-/*
 func (j Job) Delete() os.Error {
 	return j.c.delete(j.Id)
 }
-*/
