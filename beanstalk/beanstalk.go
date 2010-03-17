@@ -167,6 +167,7 @@ type op struct {
 }
 
 type result struct {
+	cmd string
 	line string // The unparsed reply line.
 	body string // The body, if any.
 	name string // The first word of the reply line.
@@ -209,7 +210,7 @@ func collect(toSend <-chan []op) (ops []op) {
 
 func (o op) resolve(line, body, name string, args []string, err os.Error) {
 	go func() {
-		o.promise <- result{line, body, name, args, err}
+		o.promise <- result{o.cmd, line, body, name, args, err}
 	}()
 }
 
@@ -221,30 +222,69 @@ func (o op) resolveErr(line string, err os.Error) {
 func optUsed(tube string, ops []op) (string, []op) {
 	newOps := make([]op, 0, len(ops))
 	for _, o := range ops {
-		if o.cmd[0:4] == "use " {
-			newTube := strings.TrimSpace(o.cmd[4:])
+		if len(o.tube) > 0 {
+			newTube := o.tube
 
 			// Leave out this command and resolve its promise
 			// directly.
-			if newTube == tube {
-				o.resolve("", "", "", []string{}, nil)
-				continue
+			if newTube != tube {
+				var use op
+				o, use = useOp(newTube, o)
+				newOps = append1(newOps, use)
 			}
 
 			tube = newTube
 		}
-		newOps = newOps[0:len(newOps) + 1]
-		newOps[len(newOps) - 1] = o
+		newOps = append1(newOps, o)
 	}
 	return tube, newOps
 }
 
+// We assume this command will succeed.
+func useOp(tube string, dep op) (old, use op) {
+	a := make(chan result)
+	b := make(chan result)
+
+	use.cmd = fmt.Sprintf("use %s\r\n", tube)
+	use.promise = a
+
+	old = dep
+	old.promise = b
+
+	go func () {
+		r1 := <-a
+		r2 := <-b
+
+		if r2.err != nil {
+			dep.promise <- r2
+			return
+		}
+
+		if r1.err != nil {
+			dep.promise <- r1
+			return
+		}
+
+		if err, ok := replyErrors[r1.name]; ok {
+			r1.err = err
+			dep.promise <- r1
+			return
+		}
+
+		dep.promise <- r2
+	}()
+
+	return
+}
+
+// We assume this command will succeed.
 func watchOp(tube string) (o op) {
 	o.cmd = fmt.Sprintf("watch %s\r\n", tube)
 	o.promise = make(chan result)
 	return
 }
 
+// We assume this command will succeed.
 func ignoreOp(tube string) (o op) {
 	o.cmd = fmt.Sprintf("ignore %s\r\n", tube)
 	o.promise = make(chan result)
@@ -345,10 +385,6 @@ func maps(f func(string) string, ss []string) (out []string) {
 	return
 }
 
-func resultErr(line string, err os.Error) result {
-	return result{line, "", "", []string{}, err}
-}
-
 func recv(raw io.Reader, ops <-chan op) {
 	rd := bufio.NewReader(raw)
 	for {
@@ -417,46 +453,33 @@ func newConn(name string, rw io.ReadWriter) Conn {
 func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 	c := t.c
 
-	cmd1 := fmt.Sprintf("use %s\r\n", t.Name)
-	p1 := make(chan result)
-	o1 := op{cmd1, "", []string{}, p1}
+	cmd := fmt.Sprintf("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
+	p := make(chan result)
+	o := op{cmd, t.Name, []string{}, p}
 
-	cmd2 := fmt.Sprintf("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
-	p2 := make(chan result)
-	o2 := op{cmd2, "", []string{}, p2}
+	c.ch <- []op{o}
 
-	c.ch <- []op{o1, o2}
-
-	r1 := <-p1
-	if r1.err != nil {
-		return 0, Error{c, cmd1, r1.line, r1.err}
+	r := <-p
+	if r.err != nil {
+		return 0, Error{c, r.cmd, r.line, r.err}
 	}
 
-	if err, ok := replyErrors[r1.name]; ok {
-		return 0, Error{c, cmd1, r1.line, err}
+	if err, ok := replyErrors[r.name]; ok {
+		return 0, Error{c, r.cmd, r.line, err}
 	}
 
-	r2 := <-p2
-	if r2.err != nil {
-		return 0, Error{c, cmd2, r2.line, r2.err}
+	if r.name != "INSERTED" {
+		return 0, Error{c, r.cmd, r.line, BadReply}
 	}
 
-	if err, ok := replyErrors[r2.name]; ok {
-		return 0, Error{c, cmd2, r2.line, err}
+	if len(r.args) != 1 {
+		return 0, Error{c, r.cmd, r.line, BadReply}
 	}
 
-	if r2.name != "INSERTED" {
-		return 0, Error{c, cmd2, r2.line, BadReply}
-	}
-
-	if len(r2.args) != 1 {
-		return 0, Error{c, cmd2, r2.line, BadReply}
-	}
-
-	id, err := strconv.Atoui64(r2.args[0])
+	id, err := strconv.Atoui64(r.args[0])
 
 	if err != nil {
-		return 0, Error{c, cmd2, r2.line, BadReply}
+		return 0, Error{c, r.cmd, r.line, BadReply}
 	}
 
 	return id, nil
@@ -464,25 +487,25 @@ func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 
 func (c Conn) checkForJob(cmd string, r result, s string) (*Job, os.Error) {
 	if r.err != nil {
-		return nil, Error{c, cmd, r.line, r.err}
+		return nil, Error{c, r.cmd, r.line, r.err}
 	}
 
 	if r.name == "NOT_FOUND" {
-		return nil, Error{c, cmd, r.line, NotFound}
+		return nil, Error{c, r.cmd, r.line, NotFound}
 	}
 
 	if r.name != s {
-		return nil, Error{c, cmd, r.line, BadReply}
+		return nil, Error{c, r.cmd, r.line, BadReply}
 	}
 
 	if len(r.args) != 2 {
-		return nil, Error{c, cmd, r.line, BadReply}
+		return nil, Error{c, r.cmd, r.line, BadReply}
 	}
 
 	id, err := strconv.Atoui64(r.args[0])
 
 	if err != nil {
-		return nil, Error{c, cmd, r.line, BadReply}
+		return nil, Error{c, r.cmd, r.line, BadReply}
 	}
 
 	return &Job{id, r.body}, nil
@@ -531,15 +554,15 @@ func (c Conn) delete(id uint64) os.Error {
 
 	r := <-p
 	if r.err != nil {
-		return Error{c, cmd, r.line, r.err}
+		return Error{c, r.cmd, r.line, r.err}
 	}
 
 	if r.name == "NOT_FOUND" {
-		return Error{c, cmd, r.line, NotFound}
+		return Error{c, r.cmd, r.line, NotFound}
 	}
 
 	if r.name != "DELETED" {
-		return Error{c, cmd, r.line, BadReply}
+		return Error{c, r.cmd, r.line, BadReply}
 	}
 
 	return nil
