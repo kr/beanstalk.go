@@ -98,7 +98,7 @@ var (
 	JobTooBig = os.NewError("Job Too Big")
 	DeadlineSoon = os.NewError("Job Deadline Soon")
 	TimedOut = os.NewError("Reserve Timed Out")
-	NotFound = os.NewError("Job Not Found")
+	NotFound = os.NewError("Job or Tube Not Found")
 	NotIgnored = os.NewError("Tube Not Ignored")
 )
 
@@ -570,6 +570,28 @@ func (t Tube) Stats() (map[string]string, os.Error) {
 // Kick up to n jobs in tube t.
 func (t Tube) Kick(n uint64) (uint64, os.Error) {
 	return t.cmd("kick %d\r\n", n).checkForInt(t.c, "KICKED")
+}
+
+// Pause tube t for usec microseconds. (As of version 1.4.4, beanstalkd
+// provides only 1-second granularity.)
+func (t Tube) Pause(usec uint64) os.Error {
+	// Note: do not use t.cmd -- this doesn't depend on the "currently
+	// used" tube.
+	r := t.c.cmd("pause-tube %s %d\r\n", t.Name, usec)
+
+	if r.err != nil {
+		return Error{t.c, r.cmd, r.line, r.err}
+	}
+
+	if r.name == "NOT_FOUND" {
+		return Error{t.c, r.cmd, r.line, NotFound}
+	}
+
+	if r.name != "PAUSED" {
+		return Error{t.c, r.cmd, r.line, BadReply}
+	}
+
+	return nil
 }
 
 // Delete job j.

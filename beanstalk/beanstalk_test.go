@@ -917,3 +917,49 @@ func TestKickOtherTube(t *testing.T) {
 	}
 }
 
+func TestTubePause(t *testing.T) {
+	rw, buf := responder("PAUSED\n")
+	c := newConn("<fake>", rw)
+	err := c.Tube("foo").Pause(3)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if buf.String() != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", buf.String())
+	}
+}
+
+func TestTubePauseNotFound(t *testing.T) {
+	rw, buf := responder("NOT_FOUND\n")
+	c := newConn("<fake>", rw)
+	err := c.Tube("foo").Pause(3)
+
+	if buf.String() != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", buf.String())
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
