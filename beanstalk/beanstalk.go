@@ -487,6 +487,22 @@ func (r result) checkForInt(c Conn, s string) (uint64, os.Error) {
 	return n, nil
 }
 
+func (r result) checkForWord(c Conn, s string) os.Error {
+	if r.err != nil {
+		return Error{c, r.cmd, r.line, r.err}
+	}
+
+	if r.name == "NOT_FOUND" {
+		return Error{c, r.cmd, r.line, NotFound}
+	}
+
+	if r.name != s {
+		return Error{c, r.cmd, r.line, BadReply}
+	}
+
+	return nil
+}
+
 func parseDict(s string) map[string]string {
 	d := make(map[string]string)
 	if strings.HasPrefix(s, "---") {
@@ -578,56 +594,17 @@ func (t Tube) Pause(usec uint64) os.Error {
 	// Note: do not use t.cmd -- this doesn't depend on the "currently
 	// used" tube.
 	r := t.c.cmd("pause-tube %s %d\r\n", t.Name, usec)
-
-	if r.err != nil {
-		return Error{t.c, r.cmd, r.line, r.err}
-	}
-
-	if r.name == "NOT_FOUND" {
-		return Error{t.c, r.cmd, r.line, NotFound}
-	}
-
-	if r.name != "PAUSED" {
-		return Error{t.c, r.cmd, r.line, BadReply}
-	}
-
-	return nil
+	return r.checkForWord(t.c, "PAUSED")
 }
 
 // Delete job j.
 func (j Job) Delete() os.Error {
-	r := j.c.cmd("delete %d\r\n", j.Id)
-	if r.err != nil {
-		return Error{j.c, r.cmd, r.line, r.err}
-	}
-
-	if r.name == "NOT_FOUND" {
-		return Error{j.c, r.cmd, r.line, NotFound}
-	}
-
-	if r.name != "DELETED" {
-		return Error{j.c, r.cmd, r.line, BadReply}
-	}
-
-	return nil
+	return j.c.cmd("delete %d\r\n", j.Id).checkForWord(j.c, "DELETED")
 }
 
 // Touch job j.
 func (j Job) Touch() os.Error {
-	r := j.c.cmd("touch %d\r\n", j.Id)
-	if r.err != nil {
-		return Error{j.c, r.cmd, r.line, r.err}
-	}
-
-	if r.name == "NOT_FOUND" {
-		return Error{j.c, r.cmd, r.line, NotFound}
-	}
-
-	if r.name != "TOUCHED" {
-		return Error{j.c, r.cmd, r.line, BadReply}
-	}
-
-	return nil
+	return j.c.cmd("touch %d\r\n", j.Id).checkForWord(j.c, "TOUCHED")
 }
 
 // Get statistics on job j.
