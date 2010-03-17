@@ -573,3 +573,22 @@ func (j Job) Delete() os.Error {
 
 	return nil
 }
+
+// Touch job j.
+func (j Job) Touch() os.Error {
+	r := j.c.cmd("touch %d\r\n", j.Id)
+	if r.err != nil {
+		return Error{j.c, r.cmd, r.line, r.err}
+	}
+
+	if r.name == "NOT_FOUND" {
+		return Error{j.c, r.cmd, r.line, NotFound}
+	}
+
+	if r.name != "TOUCHED" {
+		return Error{j.c, r.cmd, r.line, BadReply}
+	}
+
+	return nil
+}
+

@@ -379,6 +379,47 @@ func TestDeleteNotFound(t *testing.T) {
 	}
 }
 
+func TestTouch(t *testing.T) {
+	rw, buf := responder("TOUCHED\n")
+	err := Job{1, "a", newConn("<fake>", rw)}.Touch()
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if buf.String() != "touch 1\r\n" {
+		t.Errorf("expected touch command, got %q", buf.String())
+	}
+}
+
+func TestTouchNotFound(t *testing.T) {
+	rw, _ := responder("NOT_FOUND\n")
+	err := Job{1, "a", newConn("<fake>", rw)}.Touch()
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "touch 1\r\n" {
+		t.Errorf("expected touch command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "NOT_FOUND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != NotFound {
+		t.Fatalf("expected beanstalk.NotFound, got %v", berr.Error)
+	}
+}
+
+
 func TestPeekNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
