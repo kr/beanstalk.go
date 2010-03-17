@@ -105,6 +105,9 @@ var (
 var replyErrors = map[string]os.Error {
 	"INTERNAL_ERROR": InternalError,
 	"OUT_OF_MEMORY": OutOfMemory,
+	"NOT_FOUND": NotFound,
+	"BAD_FORMAT": BadFormat,
+	"UNKNOWN_COMMAND": UnknownCommand,
 }
 
 func (x µs) Milliseconds() int64 {
@@ -492,8 +495,8 @@ func (r result) checkForWord(c Conn, s string) os.Error {
 		return Error{c, r.cmd, r.line, r.err}
 	}
 
-	if r.name == "NOT_FOUND" {
-		return Error{c, r.cmd, r.line, NotFound}
+	if err, ok := replyErrors[r.name]; ok {
+		return Error{c, r.cmd, r.line, err}
 	}
 
 	if r.name != s {

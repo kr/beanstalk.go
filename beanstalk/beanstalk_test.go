@@ -963,3 +963,131 @@ func TestTubePauseNotFound(t *testing.T) {
 	}
 }
 
+func TestTubePauseInternalError(t *testing.T) {
+	rw, buf := responder("INTERNAL_ERROR\n")
+	c := newConn("<fake>", rw)
+	err := c.Tube("foo").Pause(3)
+
+	if buf.String() != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", buf.String())
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "INTERNAL_ERROR\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != InternalError {
+		t.Fatalf("expected beanstalk.InternalError, got %v", berr.Error)
+	}
+}
+
+func TestTubePauseOutOfMemory(t *testing.T) {
+	rw, buf := responder("OUT_OF_MEMORY\n")
+	c := newConn("<fake>", rw)
+	err := c.Tube("foo").Pause(3)
+
+	if buf.String() != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", buf.String())
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "OUT_OF_MEMORY\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != OutOfMemory {
+		t.Fatalf("expected beanstalk.OutOfMemory, got %v", berr.Error)
+	}
+}
+
+func TestTubeBadFormat(t *testing.T) {
+	rw, buf := responder("BAD_FORMAT\n")
+	c := newConn("<fake>", rw)
+	err := c.Tube("foo").Pause(3)
+
+	if buf.String() != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", buf.String())
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "BAD_FORMAT\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != BadFormat {
+		t.Fatalf("expected beanstalk.BadFormat, got %v", berr.Error)
+	}
+}
+
+func TestTubeUnknownCommand(t *testing.T) {
+	rw, buf := responder("UNKNOWN_COMMAND\n")
+	c := newConn("<fake>", rw)
+	err := c.Tube("foo").Pause(3)
+
+	if buf.String() != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", buf.String())
+	}
+
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	berr, ok := err.(Error)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.Error, got %T", err)
+	}
+
+	if berr.Cmd != "pause-tube foo 3\r\n" {
+		t.Errorf("expected pause-tube command, got %q", berr.Cmd)
+	}
+
+	if berr.Reply != "UNKNOWN_COMMAND\n" {
+		t.Errorf("reply was %q", berr.Reply)
+	}
+
+	if berr.Error != UnknownCommand {
+		t.Fatalf("expected beanstalk.UnknownCommand, got %v", berr.Error)
+	}
+}
+
