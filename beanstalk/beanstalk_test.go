@@ -421,9 +421,13 @@ func TestTouchNotFound(t *testing.T) {
 }
 
 func TestStats(t *testing.T) {
-	rw, _ := responder("OK 14\n---\na: 1\nx: y\n\r\n")
+	rw, buf := responder("OK 14\n---\na: 1\nx: y\n\r\n")
 	c := newConn("<fake>", rw)
 	stats, err := c.Stats()
+
+	if buf.String() != "stats\r\n" {
+		t.Errorf("expected stats command, got %q", buf.String())
+	}
 
 	if err != nil {
 		t.Error("unexpected error", err)
