@@ -401,7 +401,7 @@ func TestPeekNotFound(t *testing.T) {
 	}
 
 	if berr.Cmd != "peek 1\r\n" {
-		t.Errorf("expected delete command, got %q", berr.Cmd)
+		t.Errorf("expected peek command, got %q", berr.Cmd)
 	}
 
 	if berr.Reply != "NOT_FOUND\n" {
