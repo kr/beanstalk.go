@@ -603,6 +603,13 @@ func (t Tube) PeekBuried() (*Job, os.Error) {
 	return t.c.checkForJob(t.cmd("peek-buried\r\n"), "FOUND")
 }
 
+// Get statistics on tube t.
+func (t Tube) Stats() (map[string]string, os.Error) {
+	// Note: do not use t.cmd -- this doesn't depend on the "currently
+	// used" tube.
+	return t.c.checkForDict(t.c.cmd("stats-tube %s\r\n", t.Name))
+}
+
 // Delete job j.
 func (j Job) Delete() os.Error {
 	r := j.c.cmd("delete %d\r\n", j.Id)
