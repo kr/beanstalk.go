@@ -639,3 +639,8 @@ func (j Job) Touch() os.Error {
 	return nil
 }
 
+// Get statistics on job j.
+func (j Job) Stats() (map[string]string, os.Error) {
+	return j.c.checkForDict(j.c.cmd("stats-job %d\r\n", j.Id))
+}
+

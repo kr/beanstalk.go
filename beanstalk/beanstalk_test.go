@@ -443,6 +443,28 @@ func TestStats(t *testing.T) {
 	}
 }
 
+func TestStatsJob(t *testing.T) {
+	rw, buf := responder("OK 14\n---\na: 1\nx: y\n\r\n")
+	stats, err := Job{1, "a", newConn("<fake>", rw)}.Stats()
+
+	if buf.String() != "stats-job 1\r\n" {
+		t.Errorf("expected stats-job command, got %q", buf.String())
+	}
+
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	if stats == nil {
+		t.Fatal("stats is nil")
+	}
+
+	exp := map[string]string{"a": "1", "x": "y"}
+	if !reflect.DeepEqual(stats, exp) {
+		t.Errorf("stats doesn't match, got %#v", stats)
+	}
+}
+
 func TestPeekNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
