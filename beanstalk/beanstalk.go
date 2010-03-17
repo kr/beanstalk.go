@@ -475,33 +475,8 @@ func (t Tubes) cmd(format string, a ...interface{}) result {
 
 // Put a job into the queue.
 func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
-	c := t.c
-
 	r := t.cmd("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
-
-	if r.err != nil {
-		return 0, Error{c, r.cmd, r.line, r.err}
-	}
-
-	if err, ok := replyErrors[r.name]; ok {
-		return 0, Error{c, r.cmd, r.line, err}
-	}
-
-	if r.name != "INSERTED" {
-		return 0, Error{c, r.cmd, r.line, BadReply}
-	}
-
-	if len(r.args) != 1 {
-		return 0, Error{c, r.cmd, r.line, BadReply}
-	}
-
-	id, err := strconv.Atoui64(r.args[0])
-
-	if err != nil {
-		return 0, Error{c, r.cmd, r.line, BadReply}
-	}
-
-	return id, nil
+	return r.checkForInt(t.c, "INSERTED")
 }
 
 func (r result) checkForJob(c Conn, s string) (*Job, os.Error) {
@@ -528,6 +503,32 @@ func (r result) checkForJob(c Conn, s string) (*Job, os.Error) {
 	}
 
 	return &Job{id, r.body, c}, nil
+}
+
+func (r result) checkForInt(c Conn, s string) (uint64, os.Error) {
+	if r.err != nil {
+		return 0, Error{c, r.cmd, r.line, r.err}
+	}
+
+	if err, ok := replyErrors[r.name]; ok {
+		return 0, Error{c, r.cmd, r.line, err}
+	}
+
+	if r.name != s {
+		return 0, Error{c, r.cmd, r.line, BadReply}
+	}
+
+	if len(r.args) != 1 {
+		return 0, Error{c, r.cmd, r.line, BadReply}
+	}
+
+	n, err := strconv.Atoui64(r.args[0])
+
+	if err != nil {
+		return 0, Error{c, r.cmd, r.line, BadReply}
+	}
+
+	return n, nil
 }
 
 func parseDict(s string) map[string]string {
@@ -612,31 +613,7 @@ func (t Tube) Stats() (map[string]string, os.Error) {
 
 // Kick up to n jobs in tube t.
 func (t Tube) Kick(n uint64) (uint64, os.Error) {
-	r := t.cmd("kick %d\r\n", n)
-
-	if r.err != nil {
-		return 0, Error{t.c, r.cmd, r.line, r.err}
-	}
-
-	if err, ok := replyErrors[r.name]; ok {
-		return 0, Error{t.c, r.cmd, r.line, err}
-	}
-
-	if r.name != "KICKED" {
-		return 0, Error{t.c, r.cmd, r.line, BadReply}
-	}
-
-	if len(r.args) != 1 {
-		return 0, Error{t.c, r.cmd, r.line, BadReply}
-	}
-
-	n, err := strconv.Atoui64(r.args[0])
-
-	if err != nil {
-		return 0, Error{t.c, r.cmd, r.line, BadReply}
-	}
-
-	return n, nil
+	return t.cmd("kick %d\r\n", n).checkForInt(t.c, "KICKED")
 }
 
 // Delete job j.
