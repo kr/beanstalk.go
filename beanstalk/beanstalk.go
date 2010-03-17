@@ -161,6 +161,7 @@ func (x µs) Seconds() int64 {
 
 type op struct {
 	cmd string
+	tube string // For commands that depend on the used tube.
 	tubes []string // For commands that depend on the watch list.
 	promise chan<- result
 }
@@ -418,11 +419,11 @@ func (t Tube) Put(body string, pri, delay, ttr uint32) (uint64, os.Error) {
 
 	cmd1 := fmt.Sprintf("use %s\r\n", t.Name)
 	p1 := make(chan result)
-	o1 := op{cmd1, []string{}, p1}
+	o1 := op{cmd1, "", []string{}, p1}
 
 	cmd2 := fmt.Sprintf("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
 	p2 := make(chan result)
-	o2 := op{cmd2, []string{}, p2}
+	o2 := op{cmd2, "", []string{}, p2}
 
 	c.ch <- []op{o1, o2}
 
@@ -492,7 +493,7 @@ func (c Conn) Peek(id uint64) (*Job, os.Error) {
 	cmd := fmt.Sprintf("peek %d\r\n", id)
 	p := make(chan result)
 
-	o := op{cmd, []string{}, p}
+	o := op{cmd, "", []string{}, p}
 	c.ch <- []op{o}
 
 	r := <-p
@@ -512,7 +513,7 @@ func (c Conn) Tubes(names []string) Tubes {
 func (t Tubes) Reserve() (*Job, os.Error) {
 	cmd := fmt.Sprintf("reserve-with-timeout %d\r\n", t.timeout.Seconds())
 	p := make(chan result)
-	o := op{cmd, t.Names, p}
+	o := op{cmd, "", t.Names, p}
 
 	t.c.ch <- []op{o}
 
@@ -525,7 +526,7 @@ func (c Conn) delete(id uint64) os.Error {
 	cmd := fmt.Sprintf("delete %d\r\n", id)
 	p := make(chan result)
 
-	o := op{cmd, []string{}, p}
+	o := op{cmd, "", []string{}, p}
 	c.ch <- []op{o}
 
 	r := <-p
@@ -549,7 +550,7 @@ func (t Tube) PeekReady() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-ready\r\n")
 	p := make(chan result)
 
-	o := op{cmd, []string{}, p}
+	o := op{cmd, "", []string{}, p}
 	t.c.ch <- []op{o}
 
 	r := <-p
@@ -561,7 +562,7 @@ func (t Tube) PeekDelayed() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-delayed\r\n")
 	p := make(chan result)
 
-	o := op{cmd, []string{}, p}
+	o := op{cmd, "", []string{}, p}
 	t.c.ch <- []op{o}
 
 	r := <-p
@@ -573,7 +574,7 @@ func (t Tube) PeekBuried() (*Job, os.Error) {
 	cmd := fmt.Sprint("peek-buried\r\n")
 	p := make(chan result)
 
-	o := op{cmd, []string{}, p}
+	o := op{cmd, "", []string{}, p}
 	t.c.ch <- []op{o}
 
 	r := <-p
