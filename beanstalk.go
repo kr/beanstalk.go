@@ -35,6 +35,7 @@ import (
 	"container/vector"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -411,7 +412,7 @@ func flow(in chan op, out chan op) {
 func Dial(addr string) (Conn, os.Error) {
 	rw, err := net.Dial("tcp", "", addr)
 	if err != nil {
-		return nil, err
+		return Conn{}, err
 	}
 	return newConn(addr, rw), nil
 }
