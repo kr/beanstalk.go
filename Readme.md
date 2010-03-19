@@ -4,8 +4,8 @@ beanstalk.go is a client library for the protocol used by [beanstalkd][].
 
 ## Installation
 
-Use the `goinstall` command, and there is no need for installation. Just use
-`import "github.com/kr/beanstalk.go.git"` at the top of your go package.
+No need for that. Just put `import "github.com/kr/beanstalk.go.git"` at the
+top of your go package, and install your own package with [goinstall][].
 
 ## Example
 
@@ -35,4 +35,14 @@ And a worker:
         }
     }
 
+## Credit Where It's Due
+
+ * [spymemcached][] for the idea of making optimizing transformations on the
+   command stream.
+
+ * Go's standard libraries, especially net and http, for inspiration and
+   guidance.
+
 [beanstalkd]: http://kr.github.com/beanstalkd/
+[spymemcached]: http://code.google.com/p/spymemcached/
+[goinstall]: http://golang.org/cmd/goinstall/
