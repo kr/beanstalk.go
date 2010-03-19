@@ -65,7 +65,7 @@ type Tube struct {
 
 // Represents a set of tubes. Provides methods that operate on several tubes at
 // once, especially Reserve.
-type Tubes struct {
+type TubeSet struct {
 	Names []string
 	timeout µs
 	c Conn
@@ -431,7 +431,7 @@ func (t Tube) cmd(format string, a ...interface{}) result {
 	return t.c.cmdWait(cmd, t.Name, []string{})
 }
 
-func (t Tubes) cmd(format string, a ...interface{}) result {
+func (t TubeSet) cmd(format string, a ...interface{}) result {
 	cmd := fmt.Sprintf(format, a)
 	return t.c.cmdWait(cmd, "", t.Names)
 }
@@ -591,17 +591,16 @@ func (c Conn) ListTubes() ([]string, os.Error) {
 	return c.cmd("list-tubes\r\n").checkForList(c)
 }
 
-// A convenient way to submit many jobs to the same tube.
 func (c Conn) Tube(name string) Tube {
 	return Tube{name, c}
 }
 
-func (c Conn) Tubes(names []string) Tubes {
-	return Tubes{names, Infinity, c}
+func (c Conn) TubeSet(names []string) TubeSet {
+	return TubeSet{names, Infinity, c}
 }
 
 // Reserve a job from any one of the tubes in t.
-func (t Tubes) Reserve() (*Job, os.Error) {
+func (t TubeSet) Reserve() (*Job, os.Error) {
 	r := t.cmd("reserve-with-timeout %d\r\n", t.timeout.Seconds())
 	return r.checkForJob(t.c, "RESERVED")
 }

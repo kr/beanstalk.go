@@ -759,7 +759,7 @@ func TestReserve(t *testing.T) {
 	rw, buf := responder("RESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"default"}
-	j, err := c.Tubes(names).Reserve()
+	j, err := c.TubeSet(names).Reserve()
 
 	if buf.String() != "reserve-with-timeout 4000000000\r\n" {
 		t.Errorf("expected reserve command, got %q", buf.String())
@@ -786,7 +786,7 @@ func TestReserveExtraTube(t *testing.T) {
 	rw, buf := responder("WATCHING 2\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"default", "foo"}
-	j, err := c.Tubes(names).Reserve()
+	j, err := c.TubeSet(names).Reserve()
 
 	if buf.String() != "watch foo\r\nreserve-with-timeout 4000000000\r\n" {
 		t.Errorf("expected watch/reserve command, got %q", buf.String())
@@ -813,7 +813,7 @@ func TestReserveAlternateTube(t *testing.T) {
 	rw, buf := responder("WATCHING 2\nWATCHING 1\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"foo"}
-	j, err := c.Tubes(names).Reserve()
+	j, err := c.TubeSet(names).Reserve()
 
 	if buf.String() != "watch foo\r\nignore default\r\nreserve-with-timeout 4000000000\r\n" {
 		t.Errorf("expected watch/ignore/reserve command, got %q", buf.String())
