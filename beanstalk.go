@@ -61,7 +61,7 @@ type Job struct {
 // especially Put.
 type Tube struct {
 	Name string
-	c Conn
+	c *Conn
 }
 
 // Represents a set of tubes. Provides methods that operate on several tubes at
@@ -69,7 +69,7 @@ type Tube struct {
 type TubeSet struct {
 	Names []string
 	timeout µs
-	c Conn
+	c *Conn
 }
 
 // Implements os.Error
@@ -455,7 +455,7 @@ func (t TubeSet) cmd(format string, a ...interface{}) result {
 // non-nil. For some errors, Put will also return a valid job id.
 func (t Tube) Put(body string, pri, delay, ttr uint32) (id uint64, err os.Error) {
 	r := t.cmd("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
-	return r.checkForInt(t.c, "INSERTED")
+	return r.checkForInt(*t.c, "INSERTED")
 }
 
 func (r result) checkForJob(c Conn, s string) (*Job, os.Error) {
@@ -606,11 +606,11 @@ func (c Conn) ListTubes() ([]string, os.Error) {
 	return c.cmd("list-tubes\r\n").checkForList(c)
 }
 
-func (c Conn) Tube(name string) Tube {
+func (c *Conn) Tube(name string) Tube {
 	return Tube{name, c}
 }
 
-func (c Conn) TubeSet(names []string) TubeSet {
+func (c *Conn) TubeSet(names []string) TubeSet {
 	return TubeSet{names, Infinity, c}
 }
 
@@ -618,7 +618,7 @@ func (c Conn) TubeSet(names []string) TubeSet {
 func (t TubeSet) Reserve() (*Job, os.Error) {
 	for {
 		r := t.cmd("reserve-with-timeout %d\r\n", t.timeout.Seconds())
-		j, err := r.checkForJob(t.c, "RESERVED")
+		j, err := r.checkForJob(*t.c, "RESERVED")
 		e, ok := err.(Error)
 		if ok && e.Error == deadlineSoon {
 			// Retry automatically
@@ -632,29 +632,29 @@ func (t TubeSet) Reserve() (*Job, os.Error) {
 
 // Get a copy of the next ready job in this tube, if any.
 func (t Tube) PeekReady() (*Job, os.Error) {
-	return t.cmd("peek-ready\r\n").checkForJob(t.c, "FOUND")
+	return t.cmd("peek-ready\r\n").checkForJob(*t.c, "FOUND")
 }
 
 // Get a copy of the next delayed job in this tube, if any.
 func (t Tube) PeekDelayed() (*Job, os.Error) {
-	return t.cmd("peek-delayed\r\n").checkForJob(t.c, "FOUND")
+	return t.cmd("peek-delayed\r\n").checkForJob(*t.c, "FOUND")
 }
 
 // Get a copy of a buried job in this tube, if any.
 func (t Tube) PeekBuried() (*Job, os.Error) {
-	return t.cmd("peek-buried\r\n").checkForJob(t.c, "FOUND")
+	return t.cmd("peek-buried\r\n").checkForJob(*t.c, "FOUND")
 }
 
 // Get statistics on tube t.
 func (t Tube) Stats() (map[string]string, os.Error) {
 	// Note: do not use t.cmd -- this doesn't depend on the "currently
 	// used" tube.
-	return t.c.cmd("stats-tube %s\r\n", t.Name).checkForDict(t.c)
+	return t.c.cmd("stats-tube %s\r\n", t.Name).checkForDict(*t.c)
 }
 
 // Kick up to n jobs in tube t.
 func (t Tube) Kick(n uint64) (uint64, os.Error) {
-	return t.cmd("kick %d\r\n", n).checkForInt(t.c, "KICKED")
+	return t.cmd("kick %d\r\n", n).checkForInt(*t.c, "KICKED")
 }
 
 // Pause tube t for usec microseconds. (As of version 1.4.4, beanstalkd
@@ -663,7 +663,7 @@ func (t Tube) Pause(usec uint64) os.Error {
 	// Note: do not use t.cmd -- this doesn't depend on the "currently
 	// used" tube.
 	r := t.c.cmd("pause-tube %s %d\r\n", t.Name, usec)
-	return r.checkForWord(t.c, "PAUSED")
+	return r.checkForWord(*t.c, "PAUSED")
 }
 
 // Delete job j.
