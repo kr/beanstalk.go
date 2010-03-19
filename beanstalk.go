@@ -617,7 +617,7 @@ func (t TubeSet) Reserve() (*Job, os.Error) {
 		}
 		return j, err
 	}
-	return nil, nil
+	panic("not reached")
 }
 
 // Get a copy of the next ready job in this tube, if any.
