@@ -9,7 +9,7 @@
 //
 // To open a connection and the default tube, do
 //
-//   c := beanstalk.Open("localhost:11300")
+//   c, err := beanstalk.Dial("localhost:11300")
 //   t := c.Tube("default")
 //
 // This package provides a simple, blocking interface. To submit a job and get
@@ -405,6 +405,15 @@ func flow(in chan op, out chan op) {
 			pipeline.PushBack(<-in)
 		}
 	}
+}
+
+// Dial the beanstalkd server at remote address addr.
+func Dial(addr string) (Conn, os.Error) {
+	rw, err := net.Dial("tcp", "", addr)
+	if err != nil {
+		return nil, err
+	}
+	return newConn(addr, rw), nil
 }
 
 // The name parameter should be descriptive. It is usually the remote address
