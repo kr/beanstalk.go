@@ -43,17 +43,17 @@ import (
 // Microseconds.
 type µs int64
 
-type Job struct {
-	Id uint64
-	Body string
-	c Conn
-}
-
 // A connection to beanstalkd. Provides methods that operate outside of any
 // tube.
 type Conn struct {
 	Name string
 	ch chan<- op
+}
+
+type Job struct {
+	Id uint64
+	Body string
+	c Conn
 }
 
 // Represents a single tube. Provides methods that operate on one tube,
@@ -77,6 +77,22 @@ type Error struct {
 	Cmd string
 	Reply string
 	Error os.Error
+}
+
+type op struct {
+	cmd string
+	tube string // For commands that depend on the used tube.
+	tubes []string // For commands that depend on the watch list.
+	promise chan<- result
+}
+
+type result struct {
+	cmd string
+	line string // The unparsed reply line.
+	body string // The body, if any.
+	name string // The first word of the reply line.
+	args []string // The other words of the reply line.
+	err os.Error // An error, if any.
 }
 
 func (e Error) String() string {
@@ -121,22 +137,6 @@ func (x µs) Milliseconds() int64 {
 
 func (x µs) Seconds() int64 {
 	return x.Milliseconds() / 1000
-}
-
-type op struct {
-	cmd string
-	tube string // For commands that depend on the used tube.
-	tubes []string // For commands that depend on the watch list.
-	promise chan<- result
-}
-
-type result struct {
-	cmd string
-	line string // The unparsed reply line.
-	body string // The body, if any.
-	name string // The first word of the reply line.
-	args []string // The other words of the reply line.
-	err os.Error // An error, if any.
 }
 
 func push(ops []op, o op) []op {
