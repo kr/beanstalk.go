@@ -116,10 +116,14 @@ var (
 	Buried = os.NewError("Buried")
 	ExpectedCrLf = os.NewError("Server Expected CR LF")
 	JobTooBig = os.NewError("Job Too Big")
-	DeadlineSoon = os.NewError("Job Deadline Soon")
 	TimedOut = os.NewError("Reserve Timed Out")
 	NotFound = os.NewError("Job or Tube Not Found")
 	NotIgnored = os.NewError("Tube Not Ignored")
+)
+
+// Error responses that the server can return but we hide.
+var (
+	deadlineSoon = os.NewError("Job Deadline Soon")
 )
 
 var replyErrors = map[string]os.Error {
@@ -129,6 +133,7 @@ var replyErrors = map[string]os.Error {
 	"BAD_FORMAT": BadFormat,
 	"UNKNOWN_COMMAND": UnknownCommand,
 	"BURIED": Buried,
+	"DEADLINE_SOON": deadlineSoon,
 }
 
 func (x µs) Milliseconds() int64 {
@@ -448,8 +453,8 @@ func (r result) checkForJob(c Conn, s string) (*Job, os.Error) {
 		return nil, Error{c, r.cmd, r.line, r.err}
 	}
 
-	if r.name == "NOT_FOUND" {
-		return nil, Error{c, r.cmd, r.line, NotFound}
+	if err, ok := replyErrors[r.name]; ok {
+		return nil, Error{c, r.cmd, r.line, err}
 	}
 
 	if r.name != s {
@@ -601,8 +606,18 @@ func (c Conn) TubeSet(names []string) TubeSet {
 
 // Reserve a job from any one of the tubes in t.
 func (t TubeSet) Reserve() (*Job, os.Error) {
-	r := t.cmd("reserve-with-timeout %d\r\n", t.timeout.Seconds())
-	return r.checkForJob(t.c, "RESERVED")
+	for {
+		r := t.cmd("reserve-with-timeout %d\r\n", t.timeout.Seconds())
+		j, err := r.checkForJob(t.c, "RESERVED")
+		e, ok := err.(Error)
+		if ok && e.Error == deadlineSoon {
+			// Retry automatically
+			// TODO be careful not to flood
+			continue
+		}
+		return j, err
+	}
+	return nil, nil
 }
 
 // Get a copy of the next ready job in this tube, if any.

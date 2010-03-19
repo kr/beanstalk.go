@@ -782,6 +782,33 @@ func TestReserve(t *testing.T) {
 	}
 }
 
+func TestReserveDeadlineSoon(t *testing.T) {
+	rw, buf := responder("DEADLINE_SOON\r\nRESERVED 1 1\na\r\n")
+	c := newConn("<fake>", rw)
+	names := []string{"default"}
+	j, err := c.TubeSet(names).Reserve()
+
+	if buf.String() != "reserve-with-timeout 4000000000\r\nreserve-with-timeout 4000000000\r\n" {
+		t.Errorf("expected 2 reserve commands, got %q", buf.String())
+	}
+
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	if j == nil {
+		t.Fatal("job is nil")
+	}
+
+	if j.Id != 1 {
+		t.Error("expedted id 1, got", j.Id)
+	}
+
+	if j.Body != "a" {
+		t.Errorf("expedted body \"a\", got %q", j.Body)
+	}
+}
+
 func TestReserveExtraTube(t *testing.T) {
 	rw, buf := responder("WATCHING 2\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
