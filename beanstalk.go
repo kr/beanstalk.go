@@ -84,7 +84,7 @@ type Error struct {
 }
 
 type TubeError struct {
-	Name string
+	TubeName string
 	Error os.Error
 }
 
@@ -109,7 +109,7 @@ func (e Error) String() string {
 }
 
 func (e TubeError) String() string {
-	return fmt.Sprintf("%s: %q", e.Error, e.Name)
+	return fmt.Sprintf("%s: %q", e.Error, e.TubeName)
 }
 
 // For timeouts. Not really infinite; merely large. About 126 years.
