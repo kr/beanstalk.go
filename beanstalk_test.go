@@ -1209,8 +1209,8 @@ func TestTubeBadFormat(t *testing.T) {
 		t.Errorf("reply was %q", berr.Reply)
 	}
 
-	if berr.Error != BadFormat {
-		t.Fatalf("expected beanstalk.BadFormat, got %v", berr.Error)
+	if berr.Error != badFormat {
+		t.Fatalf("expected beanstalk.badFormat, got %v", berr.Error)
 	}
 }
 
@@ -1242,8 +1242,8 @@ func TestTubeUnknownCommand(t *testing.T) {
 		t.Errorf("reply was %q", berr.Reply)
 	}
 
-	if berr.Error != UnknownCommand {
-		t.Fatalf("expected beanstalk.UnknownCommand, got %v", berr.Error)
+	if berr.Error != unknownCommand {
+		t.Fatalf("expected beanstalk.unknownCommand, got %v", berr.Error)
 	}
 }
 

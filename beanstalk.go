@@ -154,8 +154,8 @@ var replyErrors = map[string]os.Error {
 	"INTERNAL_ERROR": InternalError,
 	"OUT_OF_MEMORY": OutOfMemory,
 	"NOT_FOUND": NotFound,
-	"BAD_FORMAT": BadFormat,
-	"UNKNOWN_COMMAND": UnknownCommand,
+	"BAD_FORMAT": badFormat,
+	"UNKNOWN_COMMAND": unknownCommand,
 	"BURIED": Buried,
 	"DEADLINE_SOON": deadlineSoon,
 }
