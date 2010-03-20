@@ -1378,32 +1378,73 @@ func TestListTubes(t *testing.T) {
 }
 
 func TestNameDefaultOk(t *testing.T) {
-	if !okTubeName("default") {
+	rw, _ := responder("")
+	c := newConn("<fake>", rw)
+	tube, err := c.NewTube("default")
+
+	if err != nil || tube == nil {
 		t.Error("should be ok")
 	}
 }
 
 func TestNameAllOk(t *testing.T) {
-	if !okTubeName("AZaz09-+/;.$_()") {
+	rw, _ := responder("")
+	c := newConn("<fake>", rw)
+	tube, err := c.NewTube("AZaz09-+/;.$_()")
+
+	if err != nil || tube == nil {
 		t.Error("should be ok")
 	}
 }
 
 func TestNameSpacesBad(t *testing.T) {
-	if okTubeName("name with spaces") {
+	rw, _ := responder("")
+	c := newConn("<fake>", rw)
+	tube, err := c.NewTube("name with spaces")
+
+	if err == nil || tube != nil {
 		t.Error("should be bad")
+	}
+
+	terr, ok := err.(TubeError)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.TubeError, got %T", err)
+	}
+
+	if terr.Error != IllegalChar {
+		t.Error("expected IllegalChar, got", err)
 	}
 }
 
 func TestNameMaxLength(t *testing.T) {
-	if !okTubeName("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") {
+	rw, _ := responder("")
+	c := newConn("<fake>", rw)
+	tube, err := c.NewTube("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+
+	if err != nil || tube == nil {
 		t.Error("should be ok")
 	}
 }
 
 func TestNameTooLong(t *testing.T) {
-	if okTubeName("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") {
+	rw, _ := responder("")
+	c := newConn("<fake>", rw)
+	tube, err := c.NewTube("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+
+	if err == nil || tube != nil {
 		t.Error("should be bad")
 	}
+
+	terr, ok := err.(TubeError)
+
+	if !ok {
+		t.Fatalf("expected beanstalk.TubeError, got %T", err)
+	}
+
+	if terr.Error != NameTooLong {
+		t.Error("expected NameTooLong, got", err)
+	}
+
 }
 

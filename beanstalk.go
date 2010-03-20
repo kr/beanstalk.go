@@ -83,6 +83,11 @@ type Error struct {
 	Error os.Error
 }
 
+type TubeError struct {
+	Name string
+	Error os.Error
+}
+
 type op struct {
 	cmd string
 	tube string // For commands that depend on the used tube.
@@ -103,6 +108,10 @@ func (e Error) String() string {
 	return fmt.Sprintf("%s: %q -> %q: %s", e.Conn.Name, e.Cmd, e.Reply, e.Error.String());
 }
 
+func (e TubeError) String() string {
+	return fmt.Sprintf("%s: %q", e.Error, e.Name)
+}
+
 // For timeouts. Not really infinite; merely large. About 126 years.
 const Infinity = µs(4000000000000000)
 
@@ -112,7 +121,8 @@ var nameRegexp = regexp.MustCompile("^[A-Za-z0-9\\-+/;.$_()]+$")
 // response, wrong number of terms, or invalid format.
 var BadReply = os.NewError("Bad Reply from Server")
 
-var BadTubeName = os.NewError("Tube name too long or contains illegal char")
+var NameTooLong = os.NewError("name too long")
+var IllegalChar = os.NewError("name contains illegal char")
 
 // Error responses that the server can return.
 var (
@@ -624,14 +634,17 @@ func (c *Conn) ListTubes() ([]string, os.Error) {
 	return c.cmd("list-tubes\r\n").checkForList(c)
 }
 
-func okTubeName(name string) bool {
+func okTubeChars(name string) bool {
 	return nameRegexp.MatchString(name) && len(name) < 201
 }
 
 // Returns an error if the tube name is invalid.
 func (c *Conn) NewTube(name string) (*Tube, os.Error) {
-	if !okTubeName(name) {
-		return nil, BadTubeName
+	if len(name) > 200 {
+		return nil, TubeError{name, NameTooLong}
+	}
+	if !okTubeChars(name) {
+		return nil, TubeError{name, IllegalChar}
 	}
 	return &Tube{name, c}, nil
 }
@@ -639,8 +652,11 @@ func (c *Conn) NewTube(name string) (*Tube, os.Error) {
 // Returns an error if any of the tube names are invalid.
 func (c *Conn) NewTubeSet(names []string) (*TubeSet, os.Error) {
 	for _, name := range names {
-		if !okTubeName(name) {
-			return nil, BadTubeName
+		if len(name) > 200 {
+			return nil, TubeError{name, NameTooLong}
+		}
+		if !okTubeChars(name) {
+			return nil, TubeError{name, IllegalChar}
 		}
 	}
 	return &TubeSet{names, Infinity, c}, nil
