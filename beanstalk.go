@@ -138,16 +138,13 @@ var (
 	NotFound = os.NewError("Job or Tube Not Found")
 	NotIgnored = os.NewError("Tube Not Ignored")
 
-	// This library avoids causing these errors entirely. They should never
-	// happen.
+	// The server can return these but we hide them.
+	deadlineSoon = os.NewError("Job Deadline Soon")
+
+	// We entirely avoid causing these errors. They should never happen.
 	badFormat = os.NewError("Bad Command Format")
 	unknownCommand = os.NewError("Unknown Command")
 	expectedCrLf = os.NewError("Server Expected CR LF")
-)
-
-// Error responses that the server can return but we hide.
-var (
-	deadlineSoon = os.NewError("Job Deadline Soon")
 )
 
 var replyErrors = map[string]os.Error {
