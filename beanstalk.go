@@ -4,27 +4,8 @@
 // terminate server replies. We also trim white space around words in reply
 // lines.
 //
-// This package does its own synchronization internally. It is safe to call any
-// of these functions from any goroutine at any time.
-//
-// To open a connection and the default tube, do
-//
-//   c, err := beanstalk.Dial("localhost:11300")
-//
-// This package provides a simple, blocking interface. To submit a job and get
-// its id, do
-//
-//   id, err := c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
-//
-// If you don't care about the id, don't wait around for it to finish:
-//
-//   go c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
-//
-// If you don't want to wait but still need the id, it's still easy:
-//
-//   go func() {
-//     id, err := c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
-//   }()
+// This package is synchronized internally. It is safe to call any of these
+// functions from any goroutine at any time.
 //
 package beanstalk
 
