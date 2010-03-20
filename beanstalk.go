@@ -50,7 +50,7 @@ type Conn struct {
 	Name string
 	*Tube
 	*TubeSet
-	ch chan<- op
+	toSend chan<- op
 }
 
 type Job struct {
@@ -393,7 +393,7 @@ func recv(raw io.Reader, ops <-chan op) {
 	}
 }
 
-func flow(in chan op, out chan op) {
+func flow(in <-chan op, out chan<- op) {
 	pipeline := list.New()
 	for {
 		nextOut := pipeline.Front()
@@ -410,6 +410,13 @@ func flow(in chan op, out chan op) {
 	}
 }
 
+// Simulate a buffered channel with unlimited capacity.
+func bigChan() (chan<- op, <-chan op) {
+	a, b := make(chan op), make(chan op)
+	go flow(a, b)
+	return a, b
+}
+
 // Dial the beanstalkd server at remote address addr.
 func Dial(addr string) (*Conn, os.Error) {
 	rw, err := net.Dial("tcp", "", addr)
@@ -423,23 +430,22 @@ func Dial(addr string) (*Conn, os.Error) {
 // of the connection.
 func newConn(name string, rw io.ReadWriter) *Conn {
 	toSend := make(chan op)
-	a, b := make(chan op), make(chan op)
+	sentIn, sentOut := bigChan()
 
-	go send(toSend, rw, a)
-	go flow(a, b) // Simulate a buffered channel with unlimited capacity.
-	go recv(rw, b)
+	go send(toSend, rw, sentIn)
+	go recv(rw, sentOut)
 
-	var c Conn
+	c := new(Conn)
 	c.Name = name
-	c.ch = toSend
+	c.toSend = toSend
 	c.Tube = c.NewTube("default")
 	c.TubeSet = c.NewTubeSet([]string{"default"})
-	return &c
+	return c
 }
 
 func (c *Conn) cmdWait(cmd string, tube string, tubes []string) result {
 	p := make(chan result)
-	c.ch <- op{cmd, tube, tubes, p}
+	c.toSend <- op{cmd, tube, tubes, p}
 	return <-p
 }
 
