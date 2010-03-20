@@ -36,6 +36,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -105,9 +106,13 @@ func (e Error) String() string {
 // For timeouts. Not really infinite; merely large. About 126 years.
 const Infinity = µs(4000000000000000)
 
+var nameRegexp = regexp.MustCompile("^[A-Za-z0-9\\-+/;.$_()]+$")
+
 // The server sent a bad reply. For example: unknown or inappropriate
 // response, wrong number of terms, or invalid format.
 var BadReply = os.NewError("Bad Reply from Server")
+
+var BadTubeName = os.NewError("Tube name too long or contains illegal char")
 
 // Error responses that the server can return.
 var (
@@ -438,8 +443,8 @@ func newConn(name string, rw io.ReadWriter) *Conn {
 	c := new(Conn)
 	c.Name = name
 	c.toSend = toSend
-	c.Tube = c.NewTube("default")
-	c.TubeSet = c.NewTubeSet([]string{"default"})
+	c.Tube, _ = c.NewTube("default") // This tube name is ok
+	c.TubeSet, _ = c.NewTubeSet([]string{"default"}) // This tube name is ok
 	return c
 }
 
@@ -619,12 +624,26 @@ func (c *Conn) ListTubes() ([]string, os.Error) {
 	return c.cmd("list-tubes\r\n").checkForList(c)
 }
 
-func (c *Conn) NewTube(name string) *Tube {
-	return &Tube{name, c}
+func okTubeName(name string) bool {
+	return nameRegexp.MatchString(name) && len(name) < 201
 }
 
-func (c *Conn) NewTubeSet(names []string) *TubeSet {
-	return &TubeSet{names, Infinity, c}
+// Returns an error if the tube name is invalid.
+func (c *Conn) NewTube(name string) (*Tube, os.Error) {
+	if !okTubeName(name) {
+		return nil, BadTubeName
+	}
+	return &Tube{name, c}, nil
+}
+
+// Returns an error if any of the tube names are invalid.
+func (c *Conn) NewTubeSet(names []string) (*TubeSet, os.Error) {
+	for _, name := range names {
+		if !okTubeName(name) {
+			return nil, BadTubeName
+		}
+	}
+	return &TubeSet{names, Infinity, c}, nil
 }
 
 // Reserve a job from any one of the tubes in t.
