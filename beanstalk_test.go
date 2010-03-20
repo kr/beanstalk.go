@@ -24,7 +24,7 @@ func responder(reply string) (io.ReadWriter, *bytes.Buffer) {
 func TestPutReplyEOF(t *testing.T) {
 	rw, _ := responder("INSERTED 1") // no traling LF, so we hit EOF
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -56,7 +56,7 @@ func TestPutReplyEOF(t *testing.T) {
 func TestPutReplyUnknown(t *testing.T) {
 	rw, _ := responder("FOO 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -88,7 +88,7 @@ func TestPutReplyUnknown(t *testing.T) {
 func TestPutReplyTooManyArgs(t *testing.T) {
 	rw, _ := responder("INSERTED 1 2\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -120,7 +120,7 @@ func TestPutReplyTooManyArgs(t *testing.T) {
 func TestPutReplyNotEnoughArgs(t *testing.T) {
 	rw, _ := responder("INSERTED\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -152,7 +152,7 @@ func TestPutReplyNotEnoughArgs(t *testing.T) {
 func TestPutReplyBadInteger(t *testing.T) {
 	rw, _ := responder("INSERTED x\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -184,7 +184,7 @@ func TestPutReplyBadInteger(t *testing.T) {
 func TestPutReplyInternalError(t *testing.T) {
 	rw, _ := responder("INTERNAL_ERROR\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if id != 0 {
 		t.Error("expected id 0, got", id)
@@ -216,7 +216,7 @@ func TestPutReplyInternalError(t *testing.T) {
 func TestStripTab(t *testing.T) {
 	rw, buf := responder("INSERTED 1\t\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -234,7 +234,7 @@ func TestStripTab(t *testing.T) {
 func TestStripCR(t *testing.T) {
 	rw, buf := responder("INSERTED 1\r\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -252,7 +252,43 @@ func TestStripCR(t *testing.T) {
 func TestPut(t *testing.T) {
 	rw, buf := responder("INSERTED 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if id != 1 {
+		t.Error("expected id 1, got", id)
+	}
+
+	if buf.String() != "put 0 0 0 1\r\na\r\n" {
+		t.Errorf("expected put command, got %q", buf.String())
+	}
+}
+
+func TestPutDefaultTube(t *testing.T) {
+	rw, buf := responder("INSERTED 1\n")
+	c := newConn("<fake>", rw)
+	id, err := c.Tube.Put("a", 0, 0, 0)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if id != 1 {
+		t.Error("expected id 1, got", id)
+	}
+
+	if buf.String() != "put 0 0 0 1\r\na\r\n" {
+		t.Errorf("expected put command, got %q", buf.String())
+	}
+}
+
+func TestPutImplicit(t *testing.T) {
+	rw, buf := responder("INSERTED 1\n")
+	c := newConn("<fake>", rw)
+	id, err := c.Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -270,7 +306,7 @@ func TestPut(t *testing.T) {
 func TestPut2(t *testing.T) {
 	rw, buf := responder("INSERTED 2\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("default").Put("a", 0, 0, 0)
+	id, err := c.NewTube("default").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -288,7 +324,7 @@ func TestPut2(t *testing.T) {
 func TestPutOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nINSERTED 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("foo").Put("a", 0, 0, 0)
+	id, err := c.NewTube("foo").Put("a", 0, 0, 0)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -306,7 +342,7 @@ func TestPutOtherTube(t *testing.T) {
 func TestPutUseFail(t *testing.T) {
 	rw, buf := responder("INTERNAL_ERROR\nINSERTED 1\n")
 	c := newConn("<fake>", rw)
-	id, err := c.Tube("foo").Put("a", 0, 0, 0)
+	id, err := c.NewTube("foo").Put("a", 0, 0, 0)
 
 	if buf.String() != "use foo\r\nput 0 0 0 1\r\na\r\n" {
 		t.Errorf("expected use/put command, got %q", buf.String())
@@ -468,7 +504,7 @@ func TestStatsJob(t *testing.T) {
 func TestStatsTube(t *testing.T) {
 	rw, buf := responder("OK 14\n---\na: 1\nx: y\n\r\n")
 	c := newConn("<fake>", rw)
-	stats, err := c.Tube("foo").Stats()
+	stats, err := c.NewTube("foo").Stats()
 
 	if buf.String() != "stats-tube foo\r\n" {
 		t.Errorf("expected stats-tube command, got %q", buf.String())
@@ -581,7 +617,7 @@ func TestPeekReplyNotEnoughArgs(t *testing.T) {
 func TestPeekReadyOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nFOUND 1 1\na\r\n")
 	c := newConn("<fake>", rw)
-	j, err := c.Tube("foo").PeekReady()
+	j, err := c.NewTube("foo").PeekReady()
 
 	if buf.String() != "use foo\r\npeek-ready\r\n" {
 		t.Errorf("expected use/peek-ready command, got %q", buf.String())
@@ -608,7 +644,7 @@ func TestPeekReadyOtherTube(t *testing.T) {
 func TestPeekDelayedOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nFOUND 1 1\na\r\n")
 	c := newConn("<fake>", rw)
-	j, err := c.Tube("foo").PeekDelayed()
+	j, err := c.NewTube("foo").PeekDelayed()
 
 	if buf.String() != "use foo\r\npeek-delayed\r\n" {
 		t.Errorf("expected use/peek-delayed command, got %q", buf.String())
@@ -635,7 +671,7 @@ func TestPeekDelayedOtherTube(t *testing.T) {
 func TestPeekBuriedOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nFOUND 1 1\na\r\n")
 	c := newConn("<fake>", rw)
-	j, err := c.Tube("foo").PeekBuried()
+	j, err := c.NewTube("foo").PeekBuried()
 
 	if buf.String() != "use foo\r\npeek-buried\r\n" {
 		t.Errorf("expected use/peek-buried command, got %q", buf.String())
@@ -662,7 +698,7 @@ func TestPeekBuriedOtherTube(t *testing.T) {
 func TestPeekReadyNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
-	j, err := c.Tube("default").PeekReady()
+	j, err := c.NewTube("default").PeekReady()
 
 	if j != nil {
 		t.Error("expected nil job")
@@ -694,7 +730,7 @@ func TestPeekReadyNotFound(t *testing.T) {
 func TestPeekDelayedNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
-	j, err := c.Tube("default").PeekDelayed()
+	j, err := c.NewTube("default").PeekDelayed()
 
 	if j != nil {
 		t.Error("expected nil job")
@@ -726,7 +762,7 @@ func TestPeekDelayedNotFound(t *testing.T) {
 func TestPeekBuriedNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
-	j, err := c.Tube("default").PeekBuried()
+	j, err := c.NewTube("default").PeekBuried()
 
 	if j != nil {
 		t.Error("expected nil job")
@@ -759,7 +795,59 @@ func TestReserve(t *testing.T) {
 	rw, buf := responder("RESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"default"}
-	j, err := c.TubeSet(names).Reserve()
+	j, err := c.NewTubeSet(names).Reserve()
+
+	if buf.String() != "reserve-with-timeout 4000000000\r\n" {
+		t.Errorf("expected reserve command, got %q", buf.String())
+	}
+
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	if j == nil {
+		t.Fatal("job is nil")
+	}
+
+	if j.Id != 1 {
+		t.Error("expedted id 1, got", j.Id)
+	}
+
+	if j.Body != "a" {
+		t.Errorf("expedted body \"a\", got %q", j.Body)
+	}
+}
+
+func TestReserveDefaultTubeSet(t *testing.T) {
+	rw, buf := responder("RESERVED 1 1\na\r\n")
+	c := newConn("<fake>", rw)
+	j, err := c.TubeSet.Reserve()
+
+	if buf.String() != "reserve-with-timeout 4000000000\r\n" {
+		t.Errorf("expected reserve command, got %q", buf.String())
+	}
+
+	if err != nil {
+		t.Error("unexpected error", err)
+	}
+
+	if j == nil {
+		t.Fatal("job is nil")
+	}
+
+	if j.Id != 1 {
+		t.Error("expedted id 1, got", j.Id)
+	}
+
+	if j.Body != "a" {
+		t.Errorf("expedted body \"a\", got %q", j.Body)
+	}
+}
+
+func TestReserveImplicit(t *testing.T) {
+	rw, buf := responder("RESERVED 1 1\na\r\n")
+	c := newConn("<fake>", rw)
+	j, err := c.Reserve()
 
 	if buf.String() != "reserve-with-timeout 4000000000\r\n" {
 		t.Errorf("expected reserve command, got %q", buf.String())
@@ -786,7 +874,7 @@ func TestReserveDeadlineSoon(t *testing.T) {
 	rw, buf := responder("DEADLINE_SOON\r\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"default"}
-	j, err := c.TubeSet(names).Reserve()
+	j, err := c.NewTubeSet(names).Reserve()
 
 	if buf.String() != "reserve-with-timeout 4000000000\r\nreserve-with-timeout 4000000000\r\n" {
 		t.Errorf("expected 2 reserve commands, got %q", buf.String())
@@ -813,7 +901,7 @@ func TestReserveExtraTube(t *testing.T) {
 	rw, buf := responder("WATCHING 2\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"default", "foo"}
-	j, err := c.TubeSet(names).Reserve()
+	j, err := c.NewTubeSet(names).Reserve()
 
 	if buf.String() != "watch foo\r\nreserve-with-timeout 4000000000\r\n" {
 		t.Errorf("expected watch/reserve command, got %q", buf.String())
@@ -840,7 +928,7 @@ func TestReserveAlternateTube(t *testing.T) {
 	rw, buf := responder("WATCHING 2\nWATCHING 1\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"foo"}
-	j, err := c.TubeSet(names).Reserve()
+	j, err := c.NewTubeSet(names).Reserve()
 
 	if buf.String() != "watch foo\r\nignore default\r\nreserve-with-timeout 4000000000\r\n" {
 		t.Errorf("expected watch/ignore/reserve command, got %q", buf.String())
@@ -920,7 +1008,7 @@ func TestParseListMissingFinalNewline(t *testing.T) {
 func TestKick(t *testing.T) {
 	rw, buf := responder("KICKED 3\n")
 	c := newConn("<fake>", rw)
-	n, err := c.Tube("default").Kick(3)
+	n, err := c.NewTube("default").Kick(3)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -938,7 +1026,7 @@ func TestKick(t *testing.T) {
 func TestKickFewer(t *testing.T) {
 	rw, buf := responder("KICKED 2\n")
 	c := newConn("<fake>", rw)
-	n, err := c.Tube("default").Kick(3)
+	n, err := c.NewTube("default").Kick(3)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -956,7 +1044,7 @@ func TestKickFewer(t *testing.T) {
 func TestKickOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nKICKED 3\n")
 	c := newConn("<fake>", rw)
-	n, err := c.Tube("foo").Kick(3)
+	n, err := c.NewTube("foo").Kick(3)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -974,7 +1062,7 @@ func TestKickOtherTube(t *testing.T) {
 func TestTubePause(t *testing.T) {
 	rw, buf := responder("PAUSED\n")
 	c := newConn("<fake>", rw)
-	err := c.Tube("foo").Pause(3)
+	err := c.NewTube("foo").Pause(3)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -988,7 +1076,7 @@ func TestTubePause(t *testing.T) {
 func TestTubePauseNotFound(t *testing.T) {
 	rw, buf := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
-	err := c.Tube("foo").Pause(3)
+	err := c.NewTube("foo").Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
 		t.Errorf("expected pause-tube command, got %q", buf.String())
@@ -1020,7 +1108,7 @@ func TestTubePauseNotFound(t *testing.T) {
 func TestTubePauseInternalError(t *testing.T) {
 	rw, buf := responder("INTERNAL_ERROR\n")
 	c := newConn("<fake>", rw)
-	err := c.Tube("foo").Pause(3)
+	err := c.NewTube("foo").Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
 		t.Errorf("expected pause-tube command, got %q", buf.String())
@@ -1052,7 +1140,7 @@ func TestTubePauseInternalError(t *testing.T) {
 func TestTubePauseOutOfMemory(t *testing.T) {
 	rw, buf := responder("OUT_OF_MEMORY\n")
 	c := newConn("<fake>", rw)
-	err := c.Tube("foo").Pause(3)
+	err := c.NewTube("foo").Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
 		t.Errorf("expected pause-tube command, got %q", buf.String())
@@ -1084,7 +1172,7 @@ func TestTubePauseOutOfMemory(t *testing.T) {
 func TestTubeBadFormat(t *testing.T) {
 	rw, buf := responder("BAD_FORMAT\n")
 	c := newConn("<fake>", rw)
-	err := c.Tube("foo").Pause(3)
+	err := c.NewTube("foo").Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
 		t.Errorf("expected pause-tube command, got %q", buf.String())
@@ -1116,7 +1204,7 @@ func TestTubeBadFormat(t *testing.T) {
 func TestTubeUnknownCommand(t *testing.T) {
 	rw, buf := responder("UNKNOWN_COMMAND\n")
 	c := newConn("<fake>", rw)
-	err := c.Tube("foo").Pause(3)
+	err := c.NewTube("foo").Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
 		t.Errorf("expected pause-tube command, got %q", buf.String())

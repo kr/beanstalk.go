@@ -16,8 +16,8 @@ A producer:
     import "github.com/kr/beanstalk.go.git"
 
     func main() {
-        t := beanstalk.Open("localhost:11300").Tube("default")
-        c.put("hello")
+        c := beanstalk.Open("localhost:11300")
+        c.Put("hello")
     }
 
 And a worker:
@@ -27,9 +27,9 @@ And a worker:
     import "github.com/kr/beanstalk.go.git"
 
     func main() {
-        ts := beanstalk.Open("localhost:11300").Tubes([]string{"default"})
+        c := beanstalk.Open("localhost:11300")
         for {
-            j, err := ts.Reserve()
+            j, err := c.Reserve()
             fmt.Println(j.Body) // prints "hello"
             j.Delete()
         }

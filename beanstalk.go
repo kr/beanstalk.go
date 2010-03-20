@@ -10,21 +10,20 @@
 // To open a connection and the default tube, do
 //
 //   c, err := beanstalk.Dial("localhost:11300")
-//   t := c.Tube("default")
 //
 // This package provides a simple, blocking interface. To submit a job and get
 // its id, do
 //
-//   id, err := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+//   id, err := c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
 //
 // If you don't care about the id, don't wait around for it to finish:
 //
-//   go t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+//   go c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
 //
 // If you don't want to wait but still need the id, it's still easy:
 //
 //   go func() {
-//     id, err := t.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+//     id, err := c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
 //   }()
 //
 package beanstalk
@@ -45,9 +44,12 @@ import (
 type µs int64
 
 // A connection to beanstalkd. Provides methods that operate outside of any
-// tube.
+// tube. This type also embeds Tube and TubeSet, which is convenient if you
+// rarely change tubes.
 type Conn struct {
 	Name string
+	Tube
+	TubeSet
 	ch chan<- op
 }
 
@@ -427,7 +429,12 @@ func newConn(name string, rw io.ReadWriter) Conn {
 	go flow(a, b) // Simulate a buffered channel with unlimited capacity.
 	go recv(rw, b)
 
-	return Conn{name, toSend}
+	var c Conn
+	c.Name = name
+	c.ch = toSend
+	c.Tube = c.NewTube("default")
+	c.TubeSet = c.NewTubeSet([]string{"default"})
+	return c
 }
 
 func (c Conn) cmdWait(cmd string, tube string, tubes []string) result {
@@ -606,11 +613,11 @@ func (c Conn) ListTubes() ([]string, os.Error) {
 	return c.cmd("list-tubes\r\n").checkForList(c)
 }
 
-func (c *Conn) Tube(name string) Tube {
+func (c *Conn) NewTube(name string) Tube {
 	return Tube{name, c}
 }
 
-func (c *Conn) TubeSet(names []string) TubeSet {
+func (c *Conn) NewTubeSet(names []string) TubeSet {
 	return TubeSet{names, Infinity, c}
 }
 
