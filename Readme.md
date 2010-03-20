@@ -16,16 +16,16 @@ To open a connection and the default tube, do
 This package provides a simple, blocking interface. To submit a job and get
 its id, do
 
-    id, err := c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+    id, err := c.Put(...)
 
-If you don't care about the id, don't wait around for it to finish:
+If you don't care about the id, no need to wait around:
 
-    go c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+    go c.Put(...)
 
 If you don't want to wait but still need the id, it's still easy:
 
     go func() {
-      id, err := c.Put("{resize:'kitten.jpg', x:30, y:30}", 10, 0, 120)
+      id, err := c.Put(...)
     }()
 
 ## Complete Example

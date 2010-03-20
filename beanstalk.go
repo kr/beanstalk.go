@@ -1,4 +1,5 @@
-// TODO write package doc.
+// Client library for the beanstalkd protocol.
+// See http://kr.github.com/beanstalkd/
 //
 // We are lenient about the protocol -- we accept either CR LF or just LF to
 // terminate server replies. We also trim white space around words in reply
