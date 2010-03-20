@@ -121,22 +121,28 @@ var nameRegexp = regexp.MustCompile("^[A-Za-z0-9\\-+/;.$_()]+$")
 // response, wrong number of terms, or invalid format.
 var BadReply = os.NewError("Bad Reply from Server")
 
-var NameTooLong = os.NewError("name too long")
-var IllegalChar = os.NewError("name contains illegal char")
+// Reasons for an invalid tube name.
+var (
+	NameTooLong = os.NewError("name too long")
+	IllegalChar = os.NewError("name contains illegal char")
+)
 
-// Error responses that the server can return.
+// Error responses from the server.
 var (
 	OutOfMemory = os.NewError("Server Out of Memory")
 	InternalError = os.NewError("Server Internal Error")
 	Draining = os.NewError("Server Draining")
-	BadFormat = os.NewError("Bad Command Format")
-	UnknownCommand = os.NewError("Unknown Command")
 	Buried = os.NewError("Buried")
-	ExpectedCrLf = os.NewError("Server Expected CR LF")
 	JobTooBig = os.NewError("Job Too Big")
 	TimedOut = os.NewError("Reserve Timed Out")
 	NotFound = os.NewError("Job or Tube Not Found")
 	NotIgnored = os.NewError("Tube Not Ignored")
+
+	// This library avoids causing these errors entirely. They should never
+	// happen.
+	badFormat = os.NewError("Bad Command Format")
+	unknownCommand = os.NewError("Unknown Command")
+	expectedCrLf = os.NewError("Server Expected CR LF")
 )
 
 // Error responses that the server can return but we hide.
