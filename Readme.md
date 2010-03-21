@@ -9,23 +9,26 @@ top of your go package, and install your own package with [goinstall][].
 
 ## Overview
 
-To open a connection and the default tube, do
+To open a connection, do
 
-    c, err := beanstalk.Dial("localhost:11300")
+    conn, err := beanstalk.Dial("localhost:11300")
 
-This package provides a simple, blocking interface. To submit a job and get
-its id, do
+This package provides a simple, blocking interface. Go makes it easy to add
+asynchrony if you want.
 
-    id, err := c.Put(...)
+**Common Case:** To submit a job and get its id, do
 
-If you don't care about the id, no need to wait around:
+    id, err := conn.Put(...)
 
-    go c.Put(...)
+**Fire and Forget:** If you don't care about the id, no need to wait around:
 
-If you don't want to wait but still need the id, it's still easy:
+    go conn.Put(...)
+
+**Full Asynchrony:** If you don't want to wait but still need the id, it's
+still easy:
 
     go func() {
-      id, err := c.Put(...)
+      id, err := conn.Put(...)
     }()
 
 ## Complete Example
@@ -37,8 +40,8 @@ A producer:
     import "github.com/kr/beanstalk.go.git"
 
     func main() {
-        c, err := beanstalk.Dial("localhost:11300")
-        c.Put("hello")
+        conn, err := beanstalk.Dial("localhost:11300")
+        conn.Put("hello", 0, 0, 10)
     }
 
 And a worker:
@@ -48,9 +51,9 @@ And a worker:
     import "github.com/kr/beanstalk.go.git"
 
     func main() {
-        c, err := beanstalk.Dial("localhost:11300")
+        conn, err := beanstalk.Dial("localhost:11300")
         for {
-            j, err := c.Reserve()
+            j, err := conn.Reserve()
             fmt.Println(j.Body) // prints "hello"
             j.Delete()
         }
