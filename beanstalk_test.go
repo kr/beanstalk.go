@@ -252,7 +252,7 @@ func TestStripCR(t *testing.T) {
 func TestPut(t *testing.T) {
 	rw, buf := responder("INSERTED 1\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("default")
+	tube, _ := NewTube(c, "default")
 	id, err := tube.Put("a", 0, 0, 0)
 
 	if err != nil {
@@ -271,7 +271,7 @@ func TestPut(t *testing.T) {
 func TestPutDelay(t *testing.T) {
 	rw, buf := responder("INSERTED 1\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("default")
+	tube, _ := NewTube(c, "default")
 	id, err := tube.Put("a", 0, 4000000, 0)
 
 	if err != nil {
@@ -290,7 +290,7 @@ func TestPutDelay(t *testing.T) {
 func TestPutTTR(t *testing.T) {
 	rw, buf := responder("INSERTED 1\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("default")
+	tube, _ := NewTube(c, "default")
 	id, err := tube.Put("a", 0, 0, 4000000)
 
 	if err != nil {
@@ -363,7 +363,7 @@ func TestPut2(t *testing.T) {
 func TestPutOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nINSERTED 1\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	id, err := tube.Put("a", 0, 0, 0)
 
 	if err != nil {
@@ -382,7 +382,7 @@ func TestPutOtherTube(t *testing.T) {
 func TestPutUseFail(t *testing.T) {
 	rw, buf := responder("INTERNAL_ERROR\nINSERTED 1\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	id, err := tube.Put("a", 0, 0, 0)
 
 	if buf.String() != "use foo\r\nput 0 0 0 1\r\na\r\n" {
@@ -545,7 +545,7 @@ func TestStatsJob(t *testing.T) {
 func TestStatsTube(t *testing.T) {
 	rw, buf := responder("OK 14\n---\na: 1\nx: y\n\r\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	stats, err := tube.Stats()
 
 	if buf.String() != "stats-tube foo\r\n" {
@@ -659,7 +659,7 @@ func TestPeekReplyNotEnoughArgs(t *testing.T) {
 func TestPeekReadyOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nFOUND 1 1\na\r\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	j, err := tube.PeekReady()
 
 	if buf.String() != "use foo\r\npeek-ready\r\n" {
@@ -687,7 +687,7 @@ func TestPeekReadyOtherTube(t *testing.T) {
 func TestPeekDelayedOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nFOUND 1 1\na\r\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	j, err := tube.PeekDelayed()
 
 	if buf.String() != "use foo\r\npeek-delayed\r\n" {
@@ -715,7 +715,7 @@ func TestPeekDelayedOtherTube(t *testing.T) {
 func TestPeekBuriedOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nFOUND 1 1\na\r\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	j, err := tube.PeekBuried()
 
 	if buf.String() != "use foo\r\npeek-buried\r\n" {
@@ -944,7 +944,7 @@ func TestReserveExtraTube(t *testing.T) {
 	rw, buf := responder("WATCHING 2\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"default", "foo"}
-	tube, _ := c.NewTubeSet(names)
+	tube, _ := NewTubeSet(c, names)
 	j, err := tube.Reserve()
 
 	if buf.String() != "watch foo\r\nreserve-with-timeout 4000000000\r\n" {
@@ -972,7 +972,7 @@ func TestReserveAlternateTube(t *testing.T) {
 	rw, buf := responder("WATCHING 2\nWATCHING 1\nRESERVED 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	names := []string{"foo"}
-	tube, _ := c.NewTubeSet(names)
+	tube, _ := NewTubeSet(c, names)
 	j, err := tube.Reserve()
 
 	if buf.String() != "watch foo\r\nignore default\r\nreserve-with-timeout 4000000000\r\n" {
@@ -1089,7 +1089,7 @@ func TestKickFewer(t *testing.T) {
 func TestKickOtherTube(t *testing.T) {
 	rw, buf := responder("USING foo\nKICKED 3\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	n, err := tube.Kick(3)
 
 	if err != nil {
@@ -1108,7 +1108,7 @@ func TestKickOtherTube(t *testing.T) {
 func TestTubePause(t *testing.T) {
 	rw, buf := responder("PAUSED\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	err := tube.Pause(3)
 
 	if err != nil {
@@ -1123,7 +1123,7 @@ func TestTubePause(t *testing.T) {
 func TestTubePauseNotFound(t *testing.T) {
 	rw, buf := responder("NOT_FOUND\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	err := tube.Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
@@ -1156,7 +1156,7 @@ func TestTubePauseNotFound(t *testing.T) {
 func TestTubePauseInternalError(t *testing.T) {
 	rw, buf := responder("INTERNAL_ERROR\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	err := tube.Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
@@ -1189,7 +1189,7 @@ func TestTubePauseInternalError(t *testing.T) {
 func TestTubePauseOutOfMemory(t *testing.T) {
 	rw, buf := responder("OUT_OF_MEMORY\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	err := tube.Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
@@ -1222,7 +1222,7 @@ func TestTubePauseOutOfMemory(t *testing.T) {
 func TestTubeBadFormat(t *testing.T) {
 	rw, buf := responder("BAD_FORMAT\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	err := tube.Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
@@ -1255,7 +1255,7 @@ func TestTubeBadFormat(t *testing.T) {
 func TestTubeUnknownCommand(t *testing.T) {
 	rw, buf := responder("UNKNOWN_COMMAND\n")
 	c := newConn("<fake>", rw)
-	tube, _ := c.NewTube("foo")
+	tube, _ := NewTube(c, "foo")
 	err := tube.Pause(3)
 
 	if buf.String() != "pause-tube foo 3\r\n" {
@@ -1418,7 +1418,7 @@ func TestListTubes(t *testing.T) {
 func TestNameDefaultOk(t *testing.T) {
 	rw, _ := responder("")
 	c := newConn("<fake>", rw)
-	tube, err := c.NewTube("default")
+	tube, err := NewTube(c, "default")
 
 	if err != nil || tube == nil {
 		t.Error("should be ok")
@@ -1428,7 +1428,7 @@ func TestNameDefaultOk(t *testing.T) {
 func TestNameAllOk(t *testing.T) {
 	rw, _ := responder("")
 	c := newConn("<fake>", rw)
-	tube, err := c.NewTube("AZaz09-+/;.$_()")
+	tube, err := NewTube(c, "AZaz09-+/;.$_()")
 
 	if err != nil || tube == nil {
 		t.Error("should be ok")
@@ -1438,7 +1438,7 @@ func TestNameAllOk(t *testing.T) {
 func TestNameSpacesBad(t *testing.T) {
 	rw, _ := responder("")
 	c := newConn("<fake>", rw)
-	tube, err := c.NewTube("name with spaces")
+	tube, err := NewTube(c, "name with spaces")
 
 	if err == nil || tube != nil {
 		t.Error("should be bad")
@@ -1458,7 +1458,7 @@ func TestNameSpacesBad(t *testing.T) {
 func TestNameMaxLength(t *testing.T) {
 	rw, _ := responder("")
 	c := newConn("<fake>", rw)
-	tube, err := c.NewTube("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+	tube, err := NewTube(c, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 
 	if err != nil || tube == nil {
 		t.Error("should be ok")
@@ -1468,7 +1468,7 @@ func TestNameMaxLength(t *testing.T) {
 func TestNameTooLong(t *testing.T) {
 	rw, _ := responder("")
 	c := newConn("<fake>", rw)
-	tube, err := c.NewTube("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+	tube, err := NewTube(c, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 
 	if err == nil || tube != nil {
 		t.Error("should be bad")

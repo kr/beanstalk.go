@@ -438,8 +438,8 @@ func newConn(name string, rw io.ReadWriter) *Conn {
 	c := new(Conn)
 	c.Name = name
 	c.toSend = toSend
-	c.Tube, _ = c.NewTube("default") // This tube name is ok
-	c.TubeSet, _ = c.NewTubeSet([]string{"default"}) // This tube name is ok
+	c.Tube, _ = NewTube(c, "default") // This tube name is ok
+	c.TubeSet, _ = NewTubeSet(c, []string{"default"}) // This tube name is ok
 	return c
 }
 
@@ -628,7 +628,7 @@ func okTubeChars(name string) bool {
 }
 
 // Returns an error if the tube name is invalid.
-func (c *Conn) NewTube(name string) (*Tube, os.Error) {
+func NewTube(c *Conn, name string) (*Tube, os.Error) {
 	if len(name) > 200 {
 		return nil, TubeError{name, NameTooLong}
 	}
@@ -639,7 +639,7 @@ func (c *Conn) NewTube(name string) (*Tube, os.Error) {
 }
 
 // Returns an error if any of the tube names are invalid.
-func (c *Conn) NewTubeSet(names []string) (*TubeSet, os.Error) {
+func NewTubeSet(c *Conn, names []string) (*TubeSet, os.Error) {
 	for _, name := range names {
 		if len(name) > 200 {
 			return nil, TubeError{name, NameTooLong}
