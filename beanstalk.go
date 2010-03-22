@@ -58,7 +58,7 @@ type TubeSet struct {
 
 // Implements os.Error
 type Error struct {
-	Conn *Conn
+	ConnName string
 	Cmd string
 	Reply string
 	Error os.Error
@@ -86,7 +86,7 @@ type result struct {
 }
 
 func (e Error) String() string {
-	return fmt.Sprintf("%s: %q -> %q: %s", e.Conn.Name, e.Cmd, e.Reply, e.Error.String());
+	return fmt.Sprintf("%s: %q -> %q: %s", e.ConnName, e.Cmd, e.Reply, e.Error.String());
 }
 
 func (e TubeError) String() string {
@@ -477,25 +477,25 @@ func (t Tube) Put(body string, pri uint32, µsDelay, µsTTR uint64) (id uint64, 
 
 func (r result) checkForJob(c *Conn, s string) (*Job, os.Error) {
 	if r.err != nil {
-		return nil, Error{c, r.cmd, r.line, r.err}
+		return nil, Error{c.Name, r.cmd, r.line, r.err}
 	}
 
 	if err, ok := replyErrors[r.name]; ok {
-		return nil, Error{c, r.cmd, r.line, err}
+		return nil, Error{c.Name, r.cmd, r.line, err}
 	}
 
 	if r.name != s {
-		return nil, Error{c, r.cmd, r.line, BadReply}
+		return nil, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	if len(r.args) != 2 {
-		return nil, Error{c, r.cmd, r.line, BadReply}
+		return nil, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	id, err := strconv.Atoui64(r.args[0])
 
 	if err != nil {
-		return nil, Error{c, r.cmd, r.line, BadReply}
+		return nil, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	return &Job{id, r.body, c}, nil
@@ -503,25 +503,25 @@ func (r result) checkForJob(c *Conn, s string) (*Job, os.Error) {
 
 func (r result) checkForInt(c *Conn, s string) (uint64, os.Error) {
 	if r.err != nil {
-		return 0, Error{c, r.cmd, r.line, r.err}
+		return 0, Error{c.Name, r.cmd, r.line, r.err}
 	}
 
 	if err, ok := replyErrors[r.name]; ok {
-		return 0, Error{c, r.cmd, r.line, err}
+		return 0, Error{c.Name, r.cmd, r.line, err}
 	}
 
 	if r.name != s {
-		return 0, Error{c, r.cmd, r.line, BadReply}
+		return 0, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	if len(r.args) != 1 {
-		return 0, Error{c, r.cmd, r.line, BadReply}
+		return 0, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	n, err := strconv.Atoui64(r.args[0])
 
 	if err != nil {
-		return 0, Error{c, r.cmd, r.line, BadReply}
+		return 0, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	return n, nil
@@ -529,15 +529,15 @@ func (r result) checkForInt(c *Conn, s string) (uint64, os.Error) {
 
 func (r result) checkForWord(c *Conn, s string) os.Error {
 	if r.err != nil {
-		return Error{c, r.cmd, r.line, r.err}
+		return Error{c.Name, r.cmd, r.line, r.err}
 	}
 
 	if err, ok := replyErrors[r.name]; ok && r.name != s {
-		return Error{c, r.cmd, r.line, err}
+		return Error{c.Name, r.cmd, r.line, err}
 	}
 
 	if r.name != s {
-		return Error{c, r.cmd, r.line, BadReply}
+		return Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	return nil
@@ -580,15 +580,15 @@ func parseList(s string) []string {
 
 func (r result) checkForDict(c *Conn) (map[string]string, os.Error) {
 	if r.err != nil {
-		return nil, Error{c, r.cmd, r.line, r.err}
+		return nil, Error{c.Name, r.cmd, r.line, r.err}
 	}
 
 	if r.name != "OK" {
-		return nil, Error{c, r.cmd, r.line, BadReply}
+		return nil, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	if len(r.args) != 1 {
-		return nil, Error{c, r.cmd, r.line, BadReply}
+		return nil, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	return parseDict(r.body), nil
@@ -596,15 +596,15 @@ func (r result) checkForDict(c *Conn) (map[string]string, os.Error) {
 
 func (r result) checkForList(c *Conn) ([]string, os.Error) {
 	if r.err != nil {
-		return nil, Error{c, r.cmd, r.line, r.err}
+		return nil, Error{c.Name, r.cmd, r.line, r.err}
 	}
 
 	if r.name != "OK" {
-		return nil, Error{c, r.cmd, r.line, BadReply}
+		return nil, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	if len(r.args) != 1 {
-		return nil, Error{c, r.cmd, r.line, BadReply}
+		return nil, Error{c.Name, r.cmd, r.line, BadReply}
 	}
 
 	return parseList(r.body), nil
