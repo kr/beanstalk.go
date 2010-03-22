@@ -95,7 +95,7 @@ func (e TubeError) String() string {
 
 // For use in parameters that measure duration (in microseconds). Not really
 // infinite; merely large. About 126 years.
-const Infinity = 4000000000000000 // µs
+const Forever = 4000000000000000 // µs
 
 var nameRegexp = regexp.MustCompile("^[A-Za-z0-9\\-+/;.$_()]+$")
 
@@ -648,7 +648,7 @@ func (c *Conn) NewTubeSet(names []string) (*TubeSet, os.Error) {
 			return nil, TubeError{name, IllegalChar}
 		}
 	}
-	return &TubeSet{names, Infinity, c}, nil
+	return &TubeSet{names, Forever, c}, nil
 }
 
 // Reserve a job from any one of the tubes in t.
