@@ -31,6 +31,22 @@ still easy:
       id, err := conn.Put(...)
     }()
 
+## Concurrency and Optimizations
+
+You can perform operations on the queue at will from all goroutines. This
+package will issue commands to beanstalkd and return results to where they
+belong. It'll also optimize the commands a bit to reduce network traffic.
+
+For example, the use, watch, and ignore commands are managed entirely by this
+library, and issued only as necessary.
+
+It also collects as many outbound commands as possible into a single network
+packet, for efficiency.
+
+In the future, it will manage the order of outgoing commands to further reduce
+the need for use, watch, and ignore commands, and to prevent reserve commands
+from stalling other commands unnecessarily.
+
 ## Complete Example
 
 A producer:
@@ -59,6 +75,16 @@ And a worker:
         }
     }
 
+## Contributing
+
+ 1. Fix a bug or implement a new feature.
+ 1. Add tests verifying your change.
+ 1. Publish your changes in a public git repository. At most one feature or
+    bug fix per commit. Topic branches are preferred, especially for larger
+    changes.
+ 1. Send [me email][] with the URL of your repository and the branch(es) you
+    want pulled.
+
 ## Credit Where It's Due
 
  * [spymemcached][] for the idea of making optimizing transformations on the
@@ -70,3 +96,4 @@ And a worker:
 [beanstalkd]: http://kr.github.com/beanstalkd/
 [spymemcached]: http://code.google.com/p/spymemcached/
 [goinstall]: http://golang.org/cmd/goinstall/
+[me email]: mailto:kr@xph.us
