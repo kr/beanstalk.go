@@ -8,6 +8,8 @@
 // This package is synchronized internally. It is safe to call any of these
 // functions from any goroutine at any time.
 //
+// Note that, as of version 1.4.4, beanstalkd provides only 1-second
+// granularity on all duration values.
 package beanstalk
 
 import (
@@ -22,9 +24,6 @@ import (
 	"strconv"
 	"strings"
 )
-
-// Microseconds.
-type µs int64
 
 // A connection to beanstalkd. Provides methods that operate outside of any
 // tube. This type also embeds Tube and TubeSet, which is convenient if you
@@ -53,7 +52,7 @@ type Tube struct {
 // once, especially Reserve.
 type TubeSet struct {
 	Names []string
-	timeout µs
+	µsTimeout uint64
 	c *Conn
 }
 
@@ -94,8 +93,9 @@ func (e TubeError) String() string {
 	return fmt.Sprintf("%s: %q", e.Error, e.TubeName)
 }
 
-// For timeouts. Not really infinite; merely large. About 126 years.
-const Infinity = µs(4000000000000000)
+// For use in parameters that measure duration (in microseconds). Not really
+// infinite; merely large. About 126 years.
+const Infinity = 4000000000000000 // µs
 
 var nameRegexp = regexp.MustCompile("^[A-Za-z0-9\\-+/;.$_()]+$")
 
@@ -139,12 +139,12 @@ var replyErrors = map[string]os.Error {
 	"DEADLINE_SOON": deadlineSoon,
 }
 
-func (x µs) Milliseconds() int64 {
-	return int64(x) / 1000
+func milliseconds(µs uint64) uint64 {
+	return µs / 1000
 }
 
-func (x µs) Seconds() int64 {
-	return x.Milliseconds() / 1000
+func seconds(µs uint64) uint64 {
+	return milliseconds(µs) / 1000
 }
 
 func push(ops []op, o op) []op {
@@ -464,10 +464,14 @@ func (t TubeSet) cmd(format string, a ...interface{}) result {
 	return t.c.cmdWait(cmd, "", t.Names)
 }
 
-// Put a job into the queue and return its id. If an error occured, err will be
-// non-nil. For some errors, Put will also return a valid job id.
-func (t Tube) Put(body string, pri, delay, ttr uint32) (id uint64, err os.Error) {
-	r := t.cmd("put %d %d %d %d\r\n%s\r\n", pri, delay, ttr, len(body), body)
+// Put a job into the queue and return its id.
+//
+// If an error occured, err will be non-nil. For some errors, Put will also
+// return a valid job id, so you must check both values.
+//
+// The delay and ttr are measured in microseconds.
+func (t Tube) Put(body string, pri uint32, µsDelay, µsTTR uint64) (id uint64, err os.Error) {
+	r := t.cmd("put %d %d %d %d\r\n%s\r\n", pri, seconds(µsDelay), seconds(µsTTR), len(body), body)
 	return r.checkForInt(t.c, "INSERTED")
 }
 
@@ -650,7 +654,7 @@ func (c *Conn) NewTubeSet(names []string) (*TubeSet, os.Error) {
 // Reserve a job from any one of the tubes in t.
 func (t TubeSet) Reserve() (*Job, os.Error) {
 	for {
-		r := t.cmd("reserve-with-timeout %d\r\n", t.timeout.Seconds())
+		r := t.cmd("reserve-with-timeout %d\r\n", seconds(t.µsTimeout))
 		j, err := r.checkForJob(t.c, "RESERVED")
 		e, ok := err.(Error)
 		if ok && e.Error == deadlineSoon {
@@ -690,12 +694,11 @@ func (t Tube) Kick(n uint64) (uint64, os.Error) {
 	return t.cmd("kick %d\r\n", n).checkForInt(t.c, "KICKED")
 }
 
-// Pause tube t for usec microseconds. (As of version 1.4.4, beanstalkd
-// provides only 1-second granularity.)
-func (t Tube) Pause(usec uint64) os.Error {
+// Pause tube t for µs microseconds.
+func (t Tube) Pause(µs uint64) os.Error {
 	// Note: do not use t.cmd -- this doesn't depend on the "currently
 	// used" tube.
-	r := t.c.cmd("pause-tube %s %d\r\n", t.Name, usec)
+	r := t.c.cmd("pause-tube %s %d\r\n", t.Name, µs)
 	return r.checkForWord(t.c, "PAUSED")
 }
 
@@ -710,13 +713,13 @@ func (j Job) Touch() os.Error {
 }
 
 // Bury job j and change its priority to pri.
-func (j Job) Bury(pri uint64) os.Error {
+func (j Job) Bury(pri uint32) os.Error {
 	return j.c.cmd("bury %d %d\r\n", j.Id, pri).checkForWord(j.c, "BURIED")
 }
 
-// Release job j and change its priority to pri with delay d.
-func (j Job) Release(pri, d uint64) os.Error {
-	r := j.c.cmd("release %d %d %d\r\n", j.Id, pri, d)
+// Release job j, changing its priority to pri and its delay to delay.
+func (j Job) Release(pri uint32, µsDelay uint64) os.Error {
+	r := j.c.cmd("release %d %d %d\r\n", j.Id, pri, seconds(µsDelay))
 	return r.checkForWord(j.c, "RELEASED")
 }
 

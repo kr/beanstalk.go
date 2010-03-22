@@ -268,6 +268,44 @@ func TestPut(t *testing.T) {
 	}
 }
 
+func TestPutDelay(t *testing.T) {
+	rw, buf := responder("INSERTED 1\n")
+	c := newConn("<fake>", rw)
+	tube, _ := c.NewTube("default")
+	id, err := tube.Put("a", 0, 4000000, 0)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if id != 1 {
+		t.Error("expected id 1, got", id)
+	}
+
+	if buf.String() != "put 0 4 0 1\r\na\r\n" {
+		t.Errorf("expected put command, got %q", buf.String())
+	}
+}
+
+func TestPutTTR(t *testing.T) {
+	rw, buf := responder("INSERTED 1\n")
+	c := newConn("<fake>", rw)
+	tube, _ := c.NewTube("default")
+	id, err := tube.Put("a", 0, 0, 4000000)
+
+	if err != nil {
+		t.Error("got unexpected error:\n  ", err)
+	}
+
+	if id != 1 {
+		t.Error("expected id 1, got", id)
+	}
+
+	if buf.String() != "put 0 0 4 1\r\na\r\n" {
+		t.Errorf("expected put command, got %q", buf.String())
+	}
+}
+
 func TestPutDefaultTube(t *testing.T) {
 	rw, buf := responder("INSERTED 1\n")
 	c := newConn("<fake>", rw)
@@ -1289,7 +1327,7 @@ func TestBuryNotFound(t *testing.T) {
 
 func TestRelease(t *testing.T) {
 	rw, buf := responder("RELEASED\n")
-	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2)
+	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2000000)
 
 	if err != nil {
 		t.Error("got unexpected error:\n  ", err)
@@ -1302,7 +1340,7 @@ func TestRelease(t *testing.T) {
 
 func TestReleaseNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
-	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2)
+	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2000000)
 
 	if err == nil {
 		t.Fatal("expected error, got none")
@@ -1329,7 +1367,7 @@ func TestReleaseNotFound(t *testing.T) {
 
 func TestReleaseBuried(t *testing.T) {
 	rw, _ := responder("BURIED\n")
-	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2)
+	err := Job{1, "a", newConn("<fake>", rw)}.Release(8, 2000000)
 
 	if err == nil {
 		t.Fatal("expected error, got none")
