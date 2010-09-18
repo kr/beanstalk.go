@@ -1,4 +1,4 @@
-src/index.html: beanstalk.go
+index.html: beanstalk.go
 	godoc -html beanstalk > $@.part
 	mv $@.part $@
 
