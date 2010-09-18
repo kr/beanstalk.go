@@ -5,6 +5,7 @@ set -e
 cat <<END
 ---
 layout: base
+title: $1.go
 ---
 END
 
