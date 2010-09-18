@@ -1,8 +1,5 @@
 index.md: beanstalk.go
-	(\
-	  printf -- '---\n---\n';\
-	  godoc -html beanstalk;\
-	) > $@.part
+	_bin/gen beanstalk > $@.part
 	mv $@.part $@
 
 beanstalk.go: force

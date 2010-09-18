@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -e
+
+printf -- '---\n---\n'
+godoc -html $1
