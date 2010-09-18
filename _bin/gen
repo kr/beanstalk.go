@@ -2,5 +2,9 @@
 
 set -e
 
-printf -- '---\n---\n'
+cat <<END
+---
+---
+END
+
 godoc -html $1
