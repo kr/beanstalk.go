@@ -12,4 +12,8 @@ _site/index.html: index.md
 	rm -rf _site
 	jekyll
 
-.PHONY: force site
+server: index.md
+	rm -rf _site
+	jekyll --server
+
+.PHONY: force site server
