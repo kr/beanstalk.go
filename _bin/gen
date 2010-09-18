@@ -9,4 +9,4 @@ title: $1.go
 ---
 END
 
-godoc -html $1
+godoc -html $1 | _bin/sub

@@ -9,7 +9,7 @@ license that can be found in the LICENSE file.
 -->
 
 <!-- PackageName is printed as title by the top-level template -->
-<p><code>import "beanstalk"</code></p>
+<p><code>import "github.com/kr/beanstalk.go.git"</code></p>
 <p>
 Client library for the beanstalkd protocol.
 See <a href="http://kr.github.com/beanstalkd/">http://kr.github.com/beanstalkd/</a>

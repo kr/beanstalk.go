@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e
+
+sed 's|import "\([a-zA-Z0-9]*\)"|import "github.com/kr/\1.go.git"|'
