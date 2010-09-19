@@ -1,5 +1,3 @@
-#!/bin/bash
+#!/bin/sed -f
 
-set -e
-
-sed 's|import "\([a-zA-Z0-9]*\)"|import "github.com/kr/\1.go.git"|'
+s|import "\([a-zA-Z0-9]*\)"|import "github.com/kr/\1.go.git"|
