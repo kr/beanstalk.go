@@ -29,6 +29,9 @@ p {
 h1, h2, h3 {
     color: #392929;
     font-family: Verdana, sans-serif;
+    margin-left: -5px;
+    margin-right: -5px;
+    padding: 2px 5px;
 }
 
 h1 {
@@ -69,6 +72,7 @@ pre {
 section.content {
     margin-left: 200px;
     padding: 0 20px;
+    margin-bottom: 60%;
 }
 
 nav {
