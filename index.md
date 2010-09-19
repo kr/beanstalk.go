@@ -31,7 +31,7 @@ granularity on all duration values.
 <p>
 <h4>Package files</h4>
 <span style="font-size:90%">
-<a href="/src/pkg/beanstalk/beanstalk.go">beanstalk.go</a>
+<a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go">beanstalk.go</a>
 </span>
 </p>
 <h2 id="Constants">Constants</h2>
@@ -71,7 +71,7 @@ response, wrong number of terms, or invalid format.
 </p>
 
 <pre>var BadReply = os.NewError(&#34;Bad Reply from Server&#34;)</pre>
-<h2 id="Conn">type <a href="/src/pkg/beanstalk/beanstalk.go#L31">Conn</a></h2>
+<h2 id="Conn">type <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L31">Conn</a></h2>
 <p>
 A connection to beanstalkd. Provides methods that operate outside of any
 tube. This type also embeds Tube and TubeSet, which is convenient if you
@@ -84,25 +84,25 @@ rarely change tubes.
     *TubeSet
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-<h3 id="Conn.Dial">func <a href="/src/pkg/beanstalk/beanstalk.go#L419">Dial</a></h3>
+<h3 id="Conn.Dial">func <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L419">Dial</a></h3>
 <p><code>func Dial(addr string) (*Conn, os.Error)</code></p>
 <p>
 Dial the beanstalkd server at remote address addr.
 </p>
 
-<h3 id="Conn.ListTubes">func (*Conn) <a href="/src/pkg/beanstalk/beanstalk.go#L620">ListTubes</a></h3>
+<h3 id="Conn.ListTubes">func (*Conn) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L620">ListTubes</a></h3>
 <p><code>func (c *Conn) ListTubes() ([]string, os.Error)</code></p>
 
-<h3 id="Conn.Peek">func (*Conn) <a href="/src/pkg/beanstalk/beanstalk.go#L612">Peek</a></h3>
+<h3 id="Conn.Peek">func (*Conn) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L612">Peek</a></h3>
 <p><code>func (c *Conn) Peek(id uint64) (*Job, os.Error)</code></p>
 <p>
 Get a copy of the specified job.
 </p>
 
-<h3 id="Conn.Stats">func (*Conn) <a href="/src/pkg/beanstalk/beanstalk.go#L616">Stats</a></h3>
+<h3 id="Conn.Stats">func (*Conn) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L616">Stats</a></h3>
 <p><code>func (c *Conn) Stats() (map[string]string, os.Error)</code></p>
 
-<h2 id="Error">type <a href="/src/pkg/beanstalk/beanstalk.go#L60">Error</a></h2>
+<h2 id="Error">type <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L60">Error</a></h2>
 <p>
 Implements os.Error
 </p>
@@ -113,47 +113,47 @@ Implements os.Error
     Reply    string
     Error    os.Error
 }</pre></p>
-<h3 id="Error.String">func (Error) <a href="/src/pkg/beanstalk/beanstalk.go#L88">String</a></h3>
+<h3 id="Error.String">func (Error) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L88">String</a></h3>
 <p><code>func (e Error) String() string</code></p>
 
-<h2 id="Job">type <a href="/src/pkg/beanstalk/beanstalk.go#L38">Job</a></h2>
+<h2 id="Job">type <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L38">Job</a></h2>
 
 <p><pre>type Job struct {
     Id   uint64
     Body string
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-<h3 id="Job.Bury">func (*Job) <a href="/src/pkg/beanstalk/beanstalk.go#L714">Bury</a></h3>
+<h3 id="Job.Bury">func (*Job) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L714">Bury</a></h3>
 <p><code>func (j *Job) Bury(pri uint32) os.Error</code></p>
 <p>
 Bury job j and change its priority to pri.
 </p>
 
-<h3 id="Job.Delete">func (*Job) <a href="/src/pkg/beanstalk/beanstalk.go#L704">Delete</a></h3>
+<h3 id="Job.Delete">func (*Job) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L704">Delete</a></h3>
 <p><code>func (j *Job) Delete() os.Error</code></p>
 <p>
 Delete job j.
 </p>
 
-<h3 id="Job.Release">func (*Job) <a href="/src/pkg/beanstalk/beanstalk.go#L719">Release</a></h3>
+<h3 id="Job.Release">func (*Job) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L719">Release</a></h3>
 <p><code>func (j *Job) Release(pri uint32, µsDelay uint64) os.Error</code></p>
 <p>
 Release job j, changing its priority to pri and its delay to delay.
 </p>
 
-<h3 id="Job.Stats">func (*Job) <a href="/src/pkg/beanstalk/beanstalk.go#L725">Stats</a></h3>
+<h3 id="Job.Stats">func (*Job) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L725">Stats</a></h3>
 <p><code>func (j *Job) Stats() (map[string]string, os.Error)</code></p>
 <p>
 Get statistics on job j.
 </p>
 
-<h3 id="Job.Touch">func (*Job) <a href="/src/pkg/beanstalk/beanstalk.go#L709">Touch</a></h3>
+<h3 id="Job.Touch">func (*Job) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L709">Touch</a></h3>
 <p><code>func (j *Job) Touch() os.Error</code></p>
 <p>
 Touch job j.
 </p>
 
-<h2 id="Tube">type <a href="/src/pkg/beanstalk/beanstalk.go#L46">Tube</a></h2>
+<h2 id="Tube">type <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L46">Tube</a></h2>
 <p>
 Represents a single tube. Provides methods that operate on one tube,
 especially Put.
@@ -163,43 +163,43 @@ especially Put.
     Name string
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-<h3 id="Tube.NewTube">func <a href="/src/pkg/beanstalk/beanstalk.go#L629">NewTube</a></h3>
+<h3 id="Tube.NewTube">func <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L629">NewTube</a></h3>
 <p><code>func NewTube(c *Conn, name string) (*Tube, os.Error)</code></p>
 <p>
 Returns an error if the tube name is invalid.
 </p>
 
-<h3 id="Tube.Kick">func (*Tube) <a href="/src/pkg/beanstalk/beanstalk.go#L691">Kick</a></h3>
+<h3 id="Tube.Kick">func (*Tube) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L691">Kick</a></h3>
 <p><code>func (t *Tube) Kick(n uint64) (uint64, os.Error)</code></p>
 <p>
 Kick up to n jobs in tube t.
 </p>
 
-<h3 id="Tube.Pause">func (*Tube) <a href="/src/pkg/beanstalk/beanstalk.go#L696">Pause</a></h3>
+<h3 id="Tube.Pause">func (*Tube) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L696">Pause</a></h3>
 <p><code>func (t *Tube) Pause(µs uint64) os.Error</code></p>
 <p>
 Pause tube t for µs microseconds.
 </p>
 
-<h3 id="Tube.PeekBuried">func (*Tube) <a href="/src/pkg/beanstalk/beanstalk.go#L679">PeekBuried</a></h3>
+<h3 id="Tube.PeekBuried">func (*Tube) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L679">PeekBuried</a></h3>
 <p><code>func (t *Tube) PeekBuried() (*Job, os.Error)</code></p>
 <p>
 Get a copy of a buried job in this tube, if any.
 </p>
 
-<h3 id="Tube.PeekDelayed">func (*Tube) <a href="/src/pkg/beanstalk/beanstalk.go#L674">PeekDelayed</a></h3>
+<h3 id="Tube.PeekDelayed">func (*Tube) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L674">PeekDelayed</a></h3>
 <p><code>func (t *Tube) PeekDelayed() (*Job, os.Error)</code></p>
 <p>
 Get a copy of the next delayed job in this tube, if any.
 </p>
 
-<h3 id="Tube.PeekReady">func (*Tube) <a href="/src/pkg/beanstalk/beanstalk.go#L669">PeekReady</a></h3>
+<h3 id="Tube.PeekReady">func (*Tube) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L669">PeekReady</a></h3>
 <p><code>func (t *Tube) PeekReady() (*Job, os.Error)</code></p>
 <p>
 Get a copy of the next ready job in this tube, if any.
 </p>
 
-<h3 id="Tube.Put">func (*Tube) <a href="/src/pkg/beanstalk/beanstalk.go#L471">Put</a></h3>
+<h3 id="Tube.Put">func (*Tube) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L471">Put</a></h3>
 <p><code>func (t *Tube) Put(body string, pri uint32, µsDelay, µsTTR uint64) (id uint64, err os.Error)</code></p>
 <p>
 Put a job into the queue and return its id.
@@ -212,22 +212,22 @@ return a valid job id, so you must check both values.
 The delay and ttr are measured in microseconds.
 </p>
 
-<h3 id="Tube.Stats">func (*Tube) <a href="/src/pkg/beanstalk/beanstalk.go#L684">Stats</a></h3>
+<h3 id="Tube.Stats">func (*Tube) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L684">Stats</a></h3>
 <p><code>func (t *Tube) Stats() (map[string]string, os.Error)</code></p>
 <p>
 Get statistics on tube t.
 </p>
 
-<h2 id="TubeError">type <a href="/src/pkg/beanstalk/beanstalk.go#L67">TubeError</a></h2>
+<h2 id="TubeError">type <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L67">TubeError</a></h2>
 
 <p><pre>type TubeError struct {
     TubeName string
     Error    os.Error
 }</pre></p>
-<h3 id="TubeError.String">func (TubeError) <a href="/src/pkg/beanstalk/beanstalk.go#L92">String</a></h3>
+<h3 id="TubeError.String">func (TubeError) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L92">String</a></h3>
 <p><code>func (e TubeError) String() string</code></p>
 
-<h2 id="TubeSet">type <a href="/src/pkg/beanstalk/beanstalk.go#L53">TubeSet</a></h2>
+<h2 id="TubeSet">type <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L53">TubeSet</a></h2>
 <p>
 Represents a set of tubes. Provides methods that operate on several tubes at
 once, especially Reserve.
@@ -237,13 +237,13 @@ once, especially Reserve.
     Names []string
     <span class="comment">// contains unexported fields</span>
 }</pre></p>
-<h3 id="TubeSet.NewTubeSet">func <a href="/src/pkg/beanstalk/beanstalk.go#L640">NewTubeSet</a></h3>
+<h3 id="TubeSet.NewTubeSet">func <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L640">NewTubeSet</a></h3>
 <p><code>func NewTubeSet(c *Conn, names []string) (*TubeSet, os.Error)</code></p>
 <p>
 Returns an error if any of the tube names are invalid.
 </p>
 
-<h3 id="TubeSet.Reserve">func (*TubeSet) <a href="/src/pkg/beanstalk/beanstalk.go#L653">Reserve</a></h3>
+<h3 id="TubeSet.Reserve">func (*TubeSet) <a href="http://github.com/kr/beanstalk.go/blob/master/beanstalk.go#L653">Reserve</a></h3>
 <p><code>func (t *TubeSet) Reserve() (*Job, os.Error)</code></p>
 <p>
 Reserve a job from any one of the tubes in t.
