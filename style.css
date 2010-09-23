@@ -1,6 +1,8 @@
 html, body {
     background: #f9f9f6;
     color: #190909;
+    margin: 0;
+    padding: 0;
 }
 
 body {
@@ -74,14 +76,16 @@ section, nav {
 }
 
 section.content {
-    margin-left: 200px;
-    padding: 0 20px;
-    margin-bottom: 60%;
+    background: #f9f9f6;
+    max-width: 679px;
+    position: relative;
+    border-left: 1px solid #d8d8d8;
+    padding: 1px 20px 60%;
+    margin: 0 0 0 auto;
 }
 
 nav {
     background: #eee;
-    border-right: 1px solid #ddd;
     color: #000;
     font-family: Verdana, sans-serif;
     font-size: 12px;
