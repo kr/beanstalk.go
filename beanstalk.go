@@ -163,11 +163,24 @@ func push(ops []op, o op) []op {
 
 // Read from toSend as many items as possible without blocking.
 func collect(toSend <-chan op) (ops []op) {
-	o, more := <-toSend, true // blocking
-
-	for more {
+	o, more := <-toSend // blocking
+	
+	if more {
 		ops = push(ops, o)
-		o, more = <-toSend // non-blocking
+	}
+	
+	//non blocking
+	for {
+		select {
+			case o, more := <-toSend:
+				if more {
+					ops = push(ops, o)
+				}
+				break
+			default:
+				return
+				break
+		}
 	}
 
 	return
@@ -356,7 +369,7 @@ func maps(f func(string) string, ss []string) (out []string) {
 	for i, s := range ss {
 		out[i] = f(s)
 	}
-	return
+	return out
 }
 
 func recv(raw io.Reader, ops <-chan op) {
@@ -370,7 +383,7 @@ func recv(raw io.Reader, ops <-chan op) {
 			return
 		}
 
-		split := maps(strings.TrimSpace, strings.Split(line, " ", 0))
+		split := maps(strings.TrimSpace, strings.Split(line, " ", -1))
 		reply, args := split[0], split[1:]
 
 		// Read the body, if any.
@@ -386,6 +399,11 @@ func recv(raw io.Reader, ops <-chan op) {
 			if r != n {
 				panic("3 todo properly teardown the Conn")
 			}
+			
+			//trash the trailing \r\n
+			if _, err := io.ReadFull(rd, make([]byte, 2)); err != nil { 
+				panic("4 todo properly teardown the Conn")
+		    }
 		}
 
 		// Get the corresponding op and deliver the result.
@@ -419,7 +437,7 @@ func bigChan() (chan<- op, <-chan op) {
 
 // Dial the beanstalkd server at remote address addr.
 func Dial(addr string) (*Conn, os.Error) {
-	rw, err := net.Dial("tcp", "", addr)
+	rw, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -450,17 +468,17 @@ func (c *Conn) cmdWait(cmd string, tube string, tubes []string) result {
 }
 
 func (c *Conn) cmd(format string, a ...interface{}) result {
-	cmd := fmt.Sprintf(format, a)
+	cmd := fmt.Sprintf(format, a...)
 	return c.cmdWait(cmd, "", []string{})
 }
 
 func (t Tube) cmd(format string, a ...interface{}) result {
-	cmd := fmt.Sprintf(format, a)
+	cmd := fmt.Sprintf(format, a...)
 	return t.c.cmdWait(cmd, t.Name, []string{})
 }
 
 func (t TubeSet) cmd(format string, a ...interface{}) result {
-	cmd := fmt.Sprintf(format, a)
+	cmd := fmt.Sprintf(format, a...)
 	return t.c.cmdWait(cmd, "", t.Names)
 }
 
