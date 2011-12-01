@@ -36,57 +36,57 @@ type Conn struct {
 }
 
 type Job struct {
-	Id uint64
+	Id   uint64
 	Body string
-	c *Conn
+	c    *Conn
 }
 
 // Represents a single tube. Provides methods that operate on one tube,
 // especially Put.
 type Tube struct {
 	Name string
-	c *Conn
+	c    *Conn
 }
 
 // Represents a set of tubes. Provides methods that operate on several tubes at
 // once, especially Reserve.
 type TubeSet struct {
-	Names []string
+	Names     []string
 	µsTimeout uint64
-	c *Conn
+	c         *Conn
 }
 
 // Implements os.Error
 type Error struct {
 	ConnName string
-	Cmd string
-	Reply string
-	Error os.Error
+	Cmd      string
+	Reply    string
+	Error    os.Error
 }
 
 type TubeError struct {
 	TubeName string
-	Error os.Error
+	Error    os.Error
 }
 
 type op struct {
-	cmd string
-	tube string // For commands that depend on the used tube.
-	tubes []string // For commands that depend on the watch list.
+	cmd     string
+	tube    string   // For commands that depend on the used tube.
+	tubes   []string // For commands that depend on the watch list.
 	promise chan<- result
 }
 
 type result struct {
-	cmd string
-	line string // The unparsed reply line.
-	body string // The body, if any.
-	name string // The first word of the reply line.
+	cmd  string
+	line string   // The unparsed reply line.
+	body string   // The body, if any.
+	name string   // The first word of the reply line.
 	args []string // The other words of the reply line.
-	err os.Error // An error, if any.
+	err  os.Error // An error, if any.
 }
 
 func (e Error) String() string {
-	return fmt.Sprintf("%s: %q -> %q: %s", e.ConnName, e.Cmd, e.Reply, e.Error.String());
+	return fmt.Sprintf("%s: %q -> %q: %s", e.ConnName, e.Cmd, e.Reply, e.Error.String())
 }
 
 func (e TubeError) String() string {
@@ -111,32 +111,32 @@ var (
 
 // Error responses from the server.
 var (
-	OutOfMemory = os.NewError("Server Out of Memory")
+	OutOfMemory   = os.NewError("Server Out of Memory")
 	InternalError = os.NewError("Server Internal Error")
-	Draining = os.NewError("Server Draining")
-	Buried = os.NewError("Buried")
-	JobTooBig = os.NewError("Job Too Big")
-	TimedOut = os.NewError("Reserve Timed Out")
-	NotFound = os.NewError("Job or Tube Not Found")
-	NotIgnored = os.NewError("Tube Not Ignored")
+	Draining      = os.NewError("Server Draining")
+	Buried        = os.NewError("Buried")
+	JobTooBig     = os.NewError("Job Too Big")
+	TimedOut      = os.NewError("Reserve Timed Out")
+	NotFound      = os.NewError("Job or Tube Not Found")
+	NotIgnored    = os.NewError("Tube Not Ignored")
 
 	// The server can return these but we hide them.
 	deadlineSoon = os.NewError("Job Deadline Soon")
 
 	// We entirely avoid causing these errors. They should never happen.
-	badFormat = os.NewError("Bad Command Format")
+	badFormat      = os.NewError("Bad Command Format")
 	unknownCommand = os.NewError("Unknown Command")
-	expectedCrLf = os.NewError("Server Expected CR LF")
+	expectedCrLf   = os.NewError("Server Expected CR LF")
 )
 
-var replyErrors = map[string]os.Error {
-	"INTERNAL_ERROR": InternalError,
-	"OUT_OF_MEMORY": OutOfMemory,
-	"NOT_FOUND": NotFound,
-	"BAD_FORMAT": badFormat,
+var replyErrors = map[string]os.Error{
+	"INTERNAL_ERROR":  InternalError,
+	"OUT_OF_MEMORY":   OutOfMemory,
+	"NOT_FOUND":       NotFound,
+	"BAD_FORMAT":      badFormat,
 	"UNKNOWN_COMMAND": unknownCommand,
-	"BURIED": Buried,
-	"DEADLINE_SOON": deadlineSoon,
+	"BURIED":          Buried,
+	"DEADLINE_SOON":   deadlineSoon,
 }
 
 func milliseconds(µs uint64) uint64 {
@@ -149,14 +149,14 @@ func seconds(µs uint64) uint64 {
 
 func push(ops []op, o op) []op {
 	l := len(ops)
-	if l + 1 > cap(ops) { // need to grow?
-		newOps := make([]op, (l + 1) * 2) // double
+	if l+1 > cap(ops) { // need to grow?
+		newOps := make([]op, (l+1)*2) // double
 		for i, o := range ops {
 			newOps[i] = o
 		}
 		ops = newOps
 	}
-	ops = ops[0:l + 1] // increase the len, not the cap
+	ops = ops[0 : l+1] // increase the len, not the cap
 	ops[l] = o
 	return ops
 }
@@ -164,22 +164,22 @@ func push(ops []op, o op) []op {
 // Read from toSend as many items as possible without blocking.
 func collect(toSend <-chan op) (ops []op) {
 	o, more := <-toSend // blocking
-	
+
 	if more {
 		ops = push(ops, o)
 	}
-	
+
 	//non blocking
 	for {
 		select {
-			case o, more := <-toSend:
-				if more {
-					ops = push(ops, o)
-				}
-				break
-			default:
-				return
-				break
+		case o, more := <-toSend:
+			if more {
+				ops = push(ops, o)
+			}
+			break
+		default:
+			return
+			break
 		}
 	}
 
@@ -229,7 +229,7 @@ func useOp(tube string, dep op) (old, use op) {
 	old = dep
 	old.promise = b
 
-	go func () {
+	go func() {
 		r1 := <-a
 		r2 := <-b
 
@@ -383,7 +383,7 @@ func recv(raw io.Reader, ops <-chan op) {
 			return
 		}
 
-		split := maps(strings.TrimSpace, strings.Split(line, " ", -1))
+		split := maps(strings.TrimSpace, strings.Split(line, " "))
 		reply, args := split[0], split[1:]
 
 		// Read the body, if any.
@@ -399,11 +399,11 @@ func recv(raw io.Reader, ops <-chan op) {
 			if r != n {
 				panic("3 todo properly teardown the Conn")
 			}
-			
+
 			//trash the trailing \r\n
-			if _, err := io.ReadFull(rd, make([]byte, 2)); err != nil { 
+			if _, err := io.ReadFull(rd, make([]byte, 2)); err != nil {
 				panic("4 todo properly teardown the Conn")
-		    }
+			}
 		}
 
 		// Get the corresponding op and deliver the result.
@@ -418,9 +418,9 @@ func flow(in <-chan op, out chan<- op) {
 		if nextOut != nil {
 			select {
 			case nextIn := <-in:
-				   pipeline.PushBack(nextIn)
+				pipeline.PushBack(nextIn)
 			case out <- nextOut.Value.(op):
-				   pipeline.Remove(nextOut)
+				pipeline.Remove(nextOut)
 			}
 		} else {
 			pipeline.PushBack(<-in)
@@ -456,7 +456,7 @@ func newConn(name string, rw io.ReadWriter) *Conn {
 	c := new(Conn)
 	c.Name = name
 	c.toSend = toSend
-	c.Tube, _ = NewTube(c, "default") // This tube name is ok
+	c.Tube, _ = NewTube(c, "default")                 // This tube name is ok
 	c.TubeSet, _ = NewTubeSet(c, []string{"default"}) // This tube name is ok
 	return c
 }
@@ -567,9 +567,9 @@ func parseDict(s string) map[string]string {
 		s = s[3:]
 	}
 	s = strings.TrimSpace(s)
-	lines := strings.Split(s, "\n", 0)
+	lines := strings.Split(s, "\n")
 	for _, line := range lines {
-		kv := strings.Split(line, ": ", 2)
+		kv := strings.SplitN(line, ": ", 2)
 		if len(kv) != 2 {
 			continue
 		}
@@ -584,14 +584,14 @@ func parseList(s string) []string {
 		s = s[3:]
 	}
 	s = strings.TrimSpace(s)
-	lines := strings.Split(s, "\n", 0)
+	lines := strings.Split(s, "\n")
 	a := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if !strings.HasPrefix(line, "- ") {
 			continue
 		}
-		a = a[0:len(a) + 1]
-		a[len(a) - 1] = line[2:]
+		a = a[0 : len(a)+1]
+		a[len(a)-1] = line[2:]
 	}
 	return a
 }
@@ -745,4 +745,3 @@ func (j Job) Release(pri uint32, µsDelay uint64) os.Error {
 func (j Job) Stats() (map[string]string, os.Error) {
 	return j.c.cmd("stats-job %d\r\n", j.Id).checkForDict(j.c)
 }
-
