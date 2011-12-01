@@ -567,7 +567,7 @@ func parseDict(s string) map[string]string {
 		s = s[3:]
 	}
 	s = strings.TrimSpace(s)
-	lines := strings.SplitN(s, "\n", 0)
+	lines := strings.Split(s, "\n")
 	for _, line := range lines {
 		kv := strings.SplitN(line, ": ", 2)
 		if len(kv) != 2 {
@@ -584,7 +584,7 @@ func parseList(s string) []string {
 		s = s[3:]
 	}
 	s = strings.TrimSpace(s)
-	lines := strings.SplitN(s, "\n", 0)
+	lines := strings.Split(s, "\n")
 	a := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if !strings.HasPrefix(line, "- ") {

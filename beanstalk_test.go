@@ -429,7 +429,6 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-
 func TestDeleteNotFound(t *testing.T) {
 	rw, _ := responder("NOT_FOUND\n")
 	err := Job{1, "a", newConn("<fake>", rw)}.Delete()
@@ -567,7 +566,7 @@ func TestStatsTube(t *testing.T) {
 }
 
 func TestPeekNotFound(t *testing.T) {
-	rw, _ := responder("NOT_FOUND\n")
+	rw, _ := responder("NOT_FOUND\r\n")
 	c := newConn("<fake>", rw)
 	j, err := c.Peek(1)
 
@@ -589,7 +588,7 @@ func TestPeekNotFound(t *testing.T) {
 		t.Errorf("expected peek command, got %q", berr.Cmd)
 	}
 
-	if berr.Reply != "NOT_FOUND\n" {
+	if berr.Reply != "NOT_FOUND\r\n" {
 		t.Errorf("reply was %q", berr.Reply)
 	}
 
@@ -599,7 +598,7 @@ func TestPeekNotFound(t *testing.T) {
 }
 
 func TestPeek(t *testing.T) {
-	rw, _ := responder("FOUND 1 1\na\n")
+	rw, _ := responder("FOUND 1 1\na\r\n")
 	c := newConn("<fake>", rw)
 	j, err := c.Peek(1)
 
@@ -621,7 +620,7 @@ func TestPeek(t *testing.T) {
 }
 
 func TestPeekReplyNotEnoughArgs(t *testing.T) {
-	rw, buf := responder("FOUND\na\n")
+	rw, buf := responder("FOUND\na\r\n")
 	c := newConn("<fake>", rw)
 	j, err := c.Peek(1)
 
@@ -1485,4 +1484,3 @@ func TestNameTooLong(t *testing.T) {
 	}
 
 }
-
