@@ -15,7 +15,6 @@ package beanstalk
 import (
 	"bufio"
 	"container/list"
-	"container/vector"
 	"fmt"
 	"io"
 	"net"
@@ -306,12 +305,12 @@ func optWatched(tubes []string, ops []op) ([]string, []op) {
 
 // Reordering, compressing, optimization.
 func prepare(ops []op) string {
-	var cmds vector.StringVector
+	var cmds = make([]string, len(ops))
 	for _, o := range ops {
-		cmds.Push(o.cmd)
+		cmds = append(cmds, o.cmd)
 	}
 
-	return strings.Join([]string(cmds), "")
+	return strings.Join(cmds, "")
 }
 
 func send(toSend <-chan op, wr io.Writer, sent chan<- op) {
